@@ -19,6 +19,8 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 
 	var satInstance *SATInstance
 
+	numClauses := 0
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		tokens := strings.Fields(line)
@@ -39,12 +41,12 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 				return nil, fmt.Errorf("invalid number of variables: %w", err)
 			}
 
-			numClauses, err := strconv.Atoi(tokens[3])
+			numClauses, err = strconv.Atoi(tokens[3])
 			if err != nil {
 				return nil, fmt.Errorf("invalid number of clauses: %w", err)
 			}
 
-			satInstance = NewSATInstance(numVars, numClauses)
+			satInstance = NewSATInstanceVars(numVars)
 			continue
 		}
 
@@ -61,6 +63,9 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 			clause[literal] = true
 			satInstance.addVariable(literal)
 		}
+		if len(clause) == 0 {
+			continue
+		}
 		satInstance.AddClause(clause)
 	}
 
@@ -68,5 +73,8 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 		return nil, fmt.Errorf("error scanning file: %w", err)
 	}
 
+	if numClauses != satInstance.NumClauses {
+		panic("num clauses in parsing doesn't match")
+	}
 	return satInstance, nil
 }

@@ -1,14 +1,24 @@
 package pkg
 
 import (
-	"fmt"
 	"log"
+	"math/rand"
+	"sort"
 )
+
+const (
+	DLCS = iota
+	DLIS
+	RDLCS
+	RDLIS
+)
+
+var CountFunc = 3
 
 func DPLL(f *SATInstance) (*SATInstance, bool) {
 	if len(f.Clauses) == 0 {
-		fmt.Println("0 clauses, returning true")
-		fmt.Println("truth assigns", f.Vars)
+		// fmt.Println("0 clauses, returning true")
+		// fmt.Println("truth assigns", f.Vars)
 		return f, true
 	}
 
@@ -29,14 +39,18 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 
 	if len(fPrime.Clauses) == 0 {
 		// fmt.Println("0 clauses, returning true", fPrime)
-		fmt.Println("truth assigns", f.Vars)
+		// fmt.Println("truth assigns", f.Vars)
 		return fPrime, true
 	}
 
-	literal := SplittingRule(fPrime)
+	literal, literalVal := SplittingRule(fPrime)
 	// fmt.Println("Split on:", literal)
 
 	fRightPrime := DeepCopySATInstance(*fPrime)
+
+	if !literalVal {
+		literal *= -1
+	}
 
 	newClause := make(map[int]bool, 0)
 	newClause[literal] = false
@@ -44,7 +58,7 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	retSAT, isSAT := DPLL(fPrime)
 	if isSAT {
 		// fmt.Println("0 clauses, returning true")
-		fmt.Println("truth assigns", retSAT.Vars)
+		// fmt.Println("truth assigns", retSAT.Vars)
 		return retSAT, isSAT
 	}
 	// fmt.Println("Split on:", literal, "left failed")
@@ -54,8 +68,8 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	fRightPrime.AddClause(newClause)
 	retSAT, isSAT = DPLL(fRightPrime)
 	if isSAT {
-		fmt.Println("0 clauses, returning true")
-		fmt.Println("truth assigns", retSAT.Vars)
+		// fmt.Println("0 clauses, returning true")
+		// fmt.Println("truth assigns", retSAT.Vars)
 		return retSAT, isSAT
 	}
 	// fmt.Println("Split on:", literal, "right failed")
@@ -88,10 +102,12 @@ func UnitPropagate(f *SATInstance) {
 		for _, clause := range f.Clauses {
 			_, containsVal := clause[toRemove]
 			if containsVal {
+				f.RemoveClauseFromCount(clause)
 				continue
 			}
 			_, containsNegVal := clause[-toRemove]
 			if containsNegVal {
+				f.RemoveLiteralFromCount(-toRemove)
 				delete(clause, -toRemove)
 			}
 			// if len(clause) == 0 {
@@ -109,26 +125,18 @@ func PureLiteralElim(f *SATInstance) {
 	// check if opp seen, if so make it false and opp false
 	// at end, go through map, pure literal elim all true valued
 	for {
-		pureLiterals := make(map[int]bool, 0)
-		for _, clause := range f.Clauses {
-			for variable := range clause {
-				_, containsVal := pureLiterals[-variable]
-				if containsVal {
-					pureLiterals[-variable] = false
-					pureLiterals[variable] = false
-				} else {
-					pureLiterals[variable] = true
-				}
+		pureLiterals := make([]int, 0)
+		for k, v := range f.VarCount {
+			if v.NegCount == 0 && v.PosCount > 0 {
+				pureLiterals = append(pureLiterals, k)
+			} else if v.PosCount == 0 && v.NegCount > 0 {
+				pureLiterals = append(pureLiterals, -k)
 			}
 		}
-		// log.Println("clauses:\n", f.PrintClauses())
-		// log.Println("pure literals", pureLiterals)
-		noChanges := true
-		for literal, isPure := range pureLiterals {
-			if !isPure {
-				continue
-			}
-			noChanges = false
+		if len(pureLiterals) == 0 {
+			return
+		}
+		for _, literal := range pureLiterals {
 			if literal > 0 {
 				f.Vars[literal] = true
 			} else {
@@ -138,24 +146,66 @@ func PureLiteralElim(f *SATInstance) {
 			for _, clause := range f.Clauses {
 				_, containsVal := clause[literal]
 				if containsVal {
+					f.RemoveClauseFromCount(clause)
 					continue
 				}
 				newClauses = append(newClauses, clause)
 			}
 			f.Clauses = newClauses
 		}
-		if noChanges {
-			break
-		}
 	}
 }
 
-func SplittingRule(f *SATInstance) int {
-	for _, clause := range f.Clauses {
-		for variable := range clause {
-			return variable
+func SplittingRule(f *SATInstance) (int, bool) {
+
+	keys := make([]int, len(f.VarCount))
+	i := 0
+	for k := range f.VarCount {
+		keys[i] = k
+		i++
+	}
+	switch CountFunc {
+	case DLCS, RDLCS:
+		sort.SliceStable(keys, func(i, j int) bool {
+			iCounts := f.VarCount[keys[i]]
+			jCounts := f.VarCount[keys[j]]
+			return (iCounts.NegCount + iCounts.PosCount) > (jCounts.NegCount + jCounts.PosCount)
+		})
+	case DLIS, RDLIS:
+		sort.SliceStable(keys, func(i, j int) bool {
+			iCounts := f.VarCount[keys[i]]
+			jCounts := f.VarCount[keys[j]]
+			return max(iCounts.NegCount, iCounts.PosCount) > max(jCounts.NegCount, jCounts.PosCount)
+		})
+	default:
+		for _, clause := range f.Clauses {
+			for variable := range clause {
+				return variable, true
+			}
 		}
 	}
+	switch CountFunc {
+	case DLCS, DLIS:
+		return keys[0], f.VarCount[keys[0]].PosCount > f.VarCount[keys[0]].NegCount
+	case RDLCS, RDLIS:
+		validLiterals := 0
+		for i := 0; i < 5; i++ { // messed up if varcount less than 5 but like
+			iCounts := f.VarCount[keys[i]]
+			if iCounts.NegCount+iCounts.PosCount > 0 {
+				validLiterals += 1
+			}
+		}
+		keyToReturn := keys[rand.Intn(validLiterals)]
+		return keyToReturn, f.VarCount[keyToReturn].PosCount > f.VarCount[keyToReturn].NegCount
+	}
+
 	log.Fatal("splitting went wrong", f.PrintClauses())
-	return 0
+	return 0, false
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -14,7 +14,7 @@ func TestUnitProp(t *testing.T) {
 
 	newClause := make(map[int]bool, 0)
 	newClause[3] = true
-	instance.Clauses = append(instance.Clauses, newClause)
+	instance.AddClause(newClause)
 	fmt.Println(instance)
 	UnitPropagate(instance)
 	fmt.Println(instance)
@@ -32,7 +32,7 @@ func TestUnitProp2(t *testing.T) {
 
 	newClause := make(map[int]bool, 0)
 	newClause[-3] = true
-	instance.Clauses = append(instance.Clauses, newClause)
+	instance.AddClause(newClause)
 	// fmt.Println(instance)
 	UnitPropagate(instance)
 	// fmt.Println(instance)
@@ -65,7 +65,7 @@ func TestPureLiteralElim(t *testing.T) {
 		return
 	}
 
-	// fmt.Println(instance)
+	fmt.Println(instance)
 	PureLiteralElim(instance)
 	// fmt.Println(newInstance)
 	if len(instance.Clauses) != 0 {
@@ -83,7 +83,7 @@ func TestPureLiteralElimStop(t *testing.T) {
 	newClause := make(map[int]bool, 0)
 	newClause[3] = false
 	newClause[-1] = false
-	instance.Clauses = append(instance.Clauses, newClause)
+	instance.AddClause(newClause)
 	// fmt.Println("initial equations", instance)
 	PureLiteralElim(instance)
 	// fmt.Println("final output", newInstance)
@@ -118,7 +118,7 @@ func TestDPLL2(t *testing.T) {
 	newClause := make(map[int]bool, 0)
 	newClause[3] = false
 	newClause[-1] = false
-	instance.Clauses = append(instance.Clauses, newClause)
+	instance.AddClause(newClause)
 
 	newInstance, isSAT := DPLL(instance)
 	if !isSAT {
@@ -165,5 +165,23 @@ func TestDPLL4(t *testing.T) {
 	_, isSAT := DPLL(instance)
 	if !isSAT {
 		t.Errorf("DPLL fail")
+	}
+}
+
+func TestRemoveClause(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_simple.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	newClause := make(map[int]bool, 0)
+	newClause[3] = false
+	newClause[-1] = false
+	instance.AddClause(newClause)
+
+	instance.RemoveClauseFromCount(newClause)
+	if instance.VarCount[3].PosCount != 1 {
+		t.Errorf("RemoveClause fail")
 	}
 }
