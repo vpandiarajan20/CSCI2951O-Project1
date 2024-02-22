@@ -51,7 +51,7 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 		}
 
 		// Clause line
-		clause := make(map[int]bool)
+		clause := make(map[int]int)
 		for _, token := range tokens {
 			literal, err := strconv.Atoi(token)
 			if err != nil {
@@ -60,7 +60,7 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 			if literal == 0 {
 				break
 			}
-			clause[literal] = true
+			clause[literal] = Unassigned
 			satInstance.addVariable(literal)
 		}
 		if len(clause) == 0 {
