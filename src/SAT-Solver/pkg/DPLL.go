@@ -22,12 +22,12 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 		return f, true
 	}
 
-	fPrime := DeepCopySATInstance(*f)
+	fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
 
 	// fmt.Println("Pre-UnitProp", fPrime)
-	UnitPropagate(fPrime)
+	UnitPropagate(fPrime) 
 	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
-	PureLiteralElim(fPrime)
+	PureLiteralElim(fPrime) 
 	// fmt.Println("Post-Literal, Pre-Split", fPrime)
 
 	// checking for empty clause unsat
@@ -83,6 +83,7 @@ func UnitPropagate(f *SATInstance) {
 		toRemove := 0
 		for _, clause := range f.Clauses {
 			if len(clause) == 1 {
+				//first key of clause map 
 				for k := range clause {
 					toRemove = k
 				}
@@ -93,18 +94,22 @@ func UnitPropagate(f *SATInstance) {
 		// fmt.Println("removing", toRemove)
 		if toRemove == 0 {
 			break
+			// break if no unit clause
 		} else if toRemove < 0 {
 			f.Vars[toRemove*-1] = false
+			// all variables stored positive in map
 		} else {
 			f.Vars[toRemove] = true
 		}
 		newClauses := []map[int]bool{}
 		for _, clause := range f.Clauses {
+			// remove clause if it contains the value
 			_, containsVal := clause[toRemove]
 			if containsVal {
-				f.RemoveClauseFromCount(clause)
-				continue
+				f.RemoveClauseFromCount(clause) 
+				continue // can have both value and negation, but then still remove
 			}
+			// remove value from clause if it contains the negation
 			_, containsNegVal := clause[-toRemove]
 			if containsNegVal {
 				f.RemoveLiteralFromCount(-toRemove)
@@ -120,10 +125,7 @@ func UnitPropagate(f *SATInstance) {
 }
 
 func PureLiteralElim(f *SATInstance) {
-	// map int to bool
-	// if seen, put in as true
-	// check if opp seen, if so make it false and opp false
-	// at end, go through map, pure literal elim all true valued
+	// always shows up in same parity - remove all clauses with that literal
 	for {
 		pureLiterals := make([]int, 0)
 		for k, v := range f.VarCount {
@@ -137,6 +139,7 @@ func PureLiteralElim(f *SATInstance) {
 			return
 		}
 		for _, literal := range pureLiterals {
+			 // actually filling out var
 			if literal > 0 {
 				f.Vars[literal] = true
 			} else {
@@ -170,6 +173,7 @@ func SplittingRule(f *SATInstance) (int, bool) {
 			iCounts := f.VarCount[keys[i]]
 			jCounts := f.VarCount[keys[j]]
 			return (iCounts.NegCount + iCounts.PosCount) > (jCounts.NegCount + jCounts.PosCount)
+			// counts stored in struct with NegCount and PosCount
 		})
 	case DLIS, RDLIS:
 		sort.SliceStable(keys, func(i, j int) bool {
@@ -186,8 +190,8 @@ func SplittingRule(f *SATInstance) (int, bool) {
 	}
 	switch CountFunc {
 	case DLCS, DLIS:
-		return keys[0], f.VarCount[keys[0]].PosCount > f.VarCount[keys[0]].NegCount
-	case RDLCS, RDLIS:
+		return keys[0], f.VarCount[keys[0]].PosCount > f.VarCount[keys[0]].NegCount // explore true or false
+	case RDLCS, RDLIS: // uniform at random first 5
 		validLiterals := 0
 		for i := 0; i < 5; i++ { // messed up if varcount less than 5 but like
 			iCounts := f.VarCount[keys[i]]

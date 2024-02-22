@@ -66,7 +66,7 @@ func ParseCNFFile(fileName string) (*SATInstance, error) {
 		if len(clause) == 0 {
 			continue
 		}
-		satInstance.AddClause(clause)
+		satInstance.AddClause(clause) // pref if set, but no sets in go
 	}
 
 	if err := scanner.Err(); err != nil {

@@ -33,6 +33,7 @@ func main() {
 	duration := time.Since(start)
 
 	if isSAT {
+		// TODO: write to a file
 		fmt.Println("final output", newInstance)
 		// fmt.Println("final truth values", newInstance.Vars)
 		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\", \"Solution\": \"%v\"}\n", filename, duration.Seconds(), mapToString(newInstance.Vars))
