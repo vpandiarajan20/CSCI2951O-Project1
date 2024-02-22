@@ -21,6 +21,7 @@ type SATInstance struct {
 		Literal1 int // watched literal 1
 		Literal2 int // watched literal 2
 	})
+	LiteralToClauses (map[int][]int)
 }
 
 func NewSATInstance(numVars, numClauses int) *SATInstance {
@@ -33,6 +34,7 @@ func NewSATInstance(numVars, numClauses int) *SATInstance {
 			Literal1 int
 			Literal2 int
 		}, 0),
+		LiteralToClauses: make(map[int][]int, 0),
 	}
 }
 func NewSATInstanceVars(numVars int) *SATInstance {
@@ -45,6 +47,7 @@ func NewSATInstanceVars(numVars int) *SATInstance {
 			Literal1 int
 			Literal2 int
 		}, 0),
+		LiteralToClauses: make(map[int][]int, 0),
 	}
 }
 
@@ -56,7 +59,6 @@ func (s *SATInstance) AddClause(clause map[int]int) {
 	// function adds clause to the SATInstance
 	s.Clauses = append(s.Clauses, clause)
 	s.NumClauses += 1
-
 }
 
 func (s *SATInstance) String() string {

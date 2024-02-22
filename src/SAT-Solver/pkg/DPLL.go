@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"log"
 )
 
@@ -13,68 +14,206 @@ const (
 
 var CountFunc = 3
 
-func DPLL(f *SATInstance) (*SATInstance, bool) {
-	if len(f.Clauses) == 0 {
-		// fmt.Println("0 clauses, returning true")
-		// fmt.Println("truth assigns", f.Vars)
-		return f, true
-	}
-
-	fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
-
-	// fmt.Println("Pre-UnitProp", fPrime)
-	// UnitPropagate(fPrime)
-	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
-	PureLiteralElim(fPrime)
-	// fmt.Println("Post-Literal, Pre-Split", fPrime)
+func DPLL(f *SATInstance) bool {
+	PureLiteralElim(f)
 
 	// checking for empty clause unsat
-	for _, clause := range fPrime.Clauses {
+	for _, clause := range f.Clauses {
 		if len(clause) == 0 {
-			return nil, false
+			return false
 		}
 	}
+	for i, clause := range f.Clauses {
+		literal1 := 0
+		literal2 := 0
 
-	if len(fPrime.Clauses) == 0 {
-		// fmt.Println("0 clauses, returning true", fPrime)
-		// fmt.Println("truth assigns", f.Vars)
-		return fPrime, true
+		for j, literal := range clause {
+			if j == 0 {
+				literal1 = literal
+			}
+			if j == 1 {
+				literal2 = literal
+			}
+		}
+		// setting watched literals
+		wl := f.WatchedLiterals[i]
+		wl.Literal1 = literal1
+		wl.Literal2 = literal2
+
+		// setting struct vals
+		f.WatchedLiterals[i] = wl
+		f.LiteralToClauses[wl.Literal1] = append(f.LiteralToClauses[wl.Literal1], i)
+		f.LiteralToClauses[wl.Literal2] = append(f.LiteralToClauses[wl.Literal2], i)
 	}
 
-	literal, literalVal := SplittingRule(fPrime)
-	// fmt.Println("Split on:", literal)
-
-	fRightPrime := DeepCopySATInstance(*fPrime)
-
-	if !literalVal {
-		literal *= -1
+	isSuccessful := initialUnitPropagate(f)
+	if !isSuccessful {
+		return false
 	}
 
-	newClause := make(map[int]int, 0)
-	newClause[literal] = False
-	fPrime.AddClause(newClause)
-	retSAT, isSAT := DPLL(fPrime)
-	if isSAT {
-		// fmt.Println("0 clauses, returning true")
-		// fmt.Println("truth assigns", retSAT.Vars)
-		return retSAT, isSAT
-	}
-	// fmt.Println("Split on:", literal, "left failed")
+	// if stack is empty, and we try to pop, then unsat
 
-	newClause = make(map[int]int, 0)
-	newClause[-literal] = False
-	fRightPrime.AddClause(newClause)
-	retSAT, isSAT = DPLL(fRightPrime)
-	if isSAT {
-		// fmt.Println("0 clauses, returning true")
-		// fmt.Println("truth assigns", retSAT.Vars)
-		return retSAT, isSAT
-	}
-	// fmt.Println("Split on:", literal, "right failed")
+	// literal, literalVal := SplittingRule(fPrime)
+	// // fmt.Println("Split on:", literal)
+
+	// fRightPrime := DeepCopySATInstance(*fPrime)
+
+	// if !literalVal {
+	// 	literal *= -1
+	// }
+
+	// newClause := make(map[int]int, 0)
+	// newClause[literal] = False
+	// fPrime.AddClause(newClause)
+	// retSAT, isSAT := DPLL(fPrime)
+	// if isSAT {
+	// 	// fmt.Println("0 clauses, returning true")
+	// 	// fmt.Println("truth assigns", retSAT.Vars)
+	// 	return retSAT, isSAT
+	// }
+	// // fmt.Println("Split on:", literal, "left failed")
+
+	// newClause = make(map[int]int, 0)
+	// newClause[-literal] = False
+	// fRightPrime.AddClause(newClause)
+	// retSAT, isSAT = DPLL(fRightPrime)
+	// if isSAT {
+	// 	// fmt.Println("0 clauses, returning true")
+	// 	// fmt.Println("truth assigns", retSAT.Vars)
+	// 	return retSAT, isSAT
+	// }
+	// // fmt.Println("Split on:", literal, "right failed")
 
 	// fmt.Println("Doesn't work, returning False", retSAT)
-	return nil, false
+	return false
 }
+
+//	func propagateWatchedLiteral(f *SATInstance) bool {
+//		for literal, clauses := range f.LiteralToClauses {
+//			if f.Vars[abs(literal)] == Unassigned {
+//				continue
+//			}
+//			for _, clauseNum := range clauses {
+//				// check if literl needs to be moved
+//				// if so
+//				// call moveWatchedLitrl
+//			}
+//		}
+//	}
+//
+// every
+
+// wlToChange MUST be positive
+func moveAllWatchedLiterals(f *SATInstance, wlToChange int) (map[int]bool, error) {
+	if wlToChange <= 0 {
+		return nil, errors.New("wlToChange must be greater than or equal to zero")
+	}
+	successfulMoves := make(map[int]bool, 0)
+	for _, clauseNum := range f.LiteralToClauses[wlToChange] {
+		successfulMove, err := moveWatchedLiteral(f, wlToChange, clauseNum)
+		if err != nil {
+			return nil, err
+		}
+		successfulMoves[clauseNum] = successfulMove
+	}
+	return successfulMoves, nil
+}
+
+func moveWatchedLiteral(f *SATInstance, wlToChange, clauseNumber int) (bool, error) {
+	wl := f.WatchedLiterals[clauseNumber]
+	changeWL1 := wl.Literal1 == wlToChange
+
+	if wlToChange <= 0 {
+		return false, errors.New("wlToChange must be greater than or equal to zero")
+	}
+
+	_, isPresent := f.Clauses[clauseNumber][wlToChange]
+	if isPresent && (f.Vars[abs(wlToChange)] == True) {
+		return true, nil
+	}
+
+	_, isPresent = f.Clauses[clauseNumber][-wlToChange]
+	if isPresent && (f.Vars[abs(wlToChange)] == False) {
+		return true, nil
+	}
+
+	for _, literal := range f.Clauses[clauseNumber] {
+		if abs(literal) == abs(wlToChange) {
+			continue
+		}
+		// if we are changing WL1, we don't want it to point to WL2
+		if changeWL1 && wl.Literal2 == literal {
+			continue
+		}
+		// if we are changing WL2, we don't want it to point to WL1
+		if !changeWL1 && wl.Literal1 == literal {
+			continue
+		}
+		if f.Vars[abs(literal)] == Unassigned || (literal > 0 && f.Vars[abs(literal)] == True) || (f.Vars[abs(literal)] == False && literal < 0) {
+			if changeWL1 {
+				wl.Literal1 = literal
+			} else {
+				wl.Literal2 = literal
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func initialUnitPropagate(f *SATInstance) (bool, error) {
+	literalsToChange := make([]int, 0)
+	unitClauses, isFound := f.LiteralToClauses[0]
+	if !isFound {
+		return true, nil
+	}
+	for _, clauseNum := range unitClauses {
+		literal := f.WatchedLiterals[clauseNum].Literal1
+		if f.Vars[abs(literal)] != Unassigned && ((f.Vars[abs(literal)] != True && literal > 0) || (f.Vars[abs(literal)] != False && literal < 0)) {
+			return false, nil
+		}
+		switch literal > 0 {
+		case true:
+			f.Vars[abs(literal)] = True
+		case false:
+			f.Vars[abs(literal)] = False
+		}
+		literalsToChange = append(literalsToChange, literal)
+	}
+	for _, literal := range literalsToChange {
+		implicationMap, err := moveAllWatchedLiterals(f, abs(literal))
+		if err != nil {
+			return false, err
+		}
+		if !resolveImplications(f, implicationMap) {
+			return false, nil
+		}
+		// might want to move resolveImplications to end of moveWatchedLiteral
+	}
+
+	return true, nil
+}
+
+func resolveImplications(f *SATInstance, implicationMap map[int]bool) bool {
+	for clauseNum, hasMoved := range implicationMap {
+		if hasMoved {
+			continue
+		}
+		wl := f.WatchedLiterals[clauseNum]
+		if (f.Vars[abs(wl.Literal2)] == True && wl.Literal2 > 0) ||
+			(f.Vars[abs(wl.Literal2)] != False && wl.Literal2 < 0) ||
+			(f.Vars[abs(wl.Literal1)] == True && wl.Literal1 > 0) ||
+			(f.Vars[abs(wl.Literal1)] != False && wl.Literal1 < 0) {
+			continue
+		}
+		changeWL1 := wl.Literal1 == Unassigned
+
+	}
+}
+
+// 0 1
+// -1 2
+// -2 -1
 
 // func UnitPropagate(f *SATInstance) {
 // 	for {
@@ -127,23 +266,26 @@ func PureLiteralElim(f *SATInstance) {
 		pureLiterals := make(map[int]bool, 0)
 		for _, clause := range f.Clauses {
 			for variable := range clause {
+				// checking to see if the negation is present in another clause
 				_, containsVal := pureLiterals[-variable]
 				if containsVal {
+					// if present, set both pos and neg to false
 					pureLiterals[-variable] = false
 					pureLiterals[variable] = false
 				} else {
+					// if not present, set to true
 					pureLiterals[variable] = true
 				}
 			}
 		}
-		// log.Println("clauses:\n", f.PrintClauses())
-		// log.Println("pure literals", pureLiterals)
 		noChanges := true
 		for literal, isPure := range pureLiterals {
 			if !isPure {
+				// skip entries that are not pure
 				continue
 			}
 			noChanges = false
+			// assign truth vals to literals
 			if literal > 0 {
 				f.Vars[literal] = True
 			} else {
