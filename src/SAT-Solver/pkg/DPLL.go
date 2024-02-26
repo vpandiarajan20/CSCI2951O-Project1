@@ -12,9 +12,15 @@ const (
 	RDLIS
 )
 
+const (
+	NoChange = iota
+	SuccessfulChange
+	FailedChange
+)
+
 var CountFunc = 3
 
-func DPLL(f *SATInstance) bool {
+func DPLL(f *SATInstance) bool, error {
 	PureLiteralElim(f)
 
 	// checking for empty clause unsat
@@ -46,9 +52,12 @@ func DPLL(f *SATInstance) bool {
 		f.LiteralToClauses[wl.Literal2] = append(f.LiteralToClauses[wl.Literal2], i)
 	}
 
-	isSuccessful := initialUnitPropagate(f)
+	isSuccessful, err := unitPropagate(f, 0)
 	if !isSuccessful {
-		return false
+		return false, nil
+	}
+	if err != nil {
+		return 
 	}
 
 	// if stack is empty, and we try to pop, then unsat
@@ -104,38 +113,53 @@ func DPLL(f *SATInstance) bool {
 // every
 
 // wlToChange MUST be positive
-func moveAllWatchedLiterals(f *SATInstance, wlToChange int) (map[int]bool, error) {
-	if wlToChange <= 0 {
-		return nil, errors.New("wlToChange must be greater than or equal to zero")
-	}
-	successfulMoves := make(map[int]bool, 0)
-	for _, clauseNum := range f.LiteralToClauses[wlToChange] {
-		successfulMove, err := moveWatchedLiteral(f, wlToChange, clauseNum)
-		if err != nil {
-			return nil, err
-		}
-		successfulMoves[clauseNum] = successfulMove
-	}
-	return successfulMoves, nil
-}
-
-func moveWatchedLiteral(f *SATInstance, wlToChange, clauseNumber int) (bool, error) {
-	wl := f.WatchedLiterals[clauseNumber]
-	changeWL1 := wl.Literal1 == wlToChange
-
+func moveAllWatchedLiterals(f *SATInstance, wlToChange int) (bool, error) {
 	if wlToChange <= 0 {
 		return false, errors.New("wlToChange must be greater than or equal to zero")
+	}
+	for {
+		finished := true
+		for _, clauseNum := range f.LiteralToClauses[wlToChange] {
+			change, err := moveWatchedLiteral(f, wlToChange, clauseNum)
+			// check in moveWatchedLiteral if actually need to move
+
+			if err != nil || change == FailedChange {
+				return false, err
+			}
+			if change == SuccessfulChange {
+				// if change something then f.LiteralToClauses[wlToChange] is stale so break
+				finished = false
+				break
+			}
+		}
+
+		if finished {
+			// if iterates through all the watched clauses to change and don't need to change any of them finish
+			break
+		}
+	}
+	return true, nil
+}
+
+func moveWatchedLiteral(f *SATInstance, wlToChange, clauseNumber int) (int, error) {
+	wl := f.WatchedLiterals[clauseNumber]
+
+	if wlToChange <= 0 {
+		return FailedChange, errors.New("wlToChange must be greater than or equal to zero")
 	}
 
 	_, isPresent := f.Clauses[clauseNumber][wlToChange]
 	if isPresent && (f.Vars[abs(wlToChange)] == True) {
-		return true, nil
+		return NoChange, nil
 	}
 
 	_, isPresent = f.Clauses[clauseNumber][-wlToChange]
 	if isPresent && (f.Vars[abs(wlToChange)] == False) {
-		return true, nil
+		return NoChange, nil
 	}
+
+	// if we reach this point, it means the wlToChange has an unsatisfying assignment in this clause
+	changeWL1 := abs(wl.Literal1) == wlToChange
 
 	for _, literal := range f.Clauses[clauseNumber] {
 		if abs(literal) == abs(wlToChange) {
@@ -145,121 +169,115 @@ func moveWatchedLiteral(f *SATInstance, wlToChange, clauseNumber int) (bool, err
 		if changeWL1 && wl.Literal2 == literal {
 			continue
 		}
-		// if we are changing WL2, we don't want it to point to WL1
+		// if we are changing WL2, we don't wnt it to point to WL1
 		if !changeWL1 && wl.Literal1 == literal {
 			continue
 		}
+
 		if f.Vars[abs(literal)] == Unassigned || (literal > 0 && f.Vars[abs(literal)] == True) || (f.Vars[abs(literal)] == False && literal < 0) {
 			if changeWL1 {
+				// var name is bad
+				newLiteralToClauses, err := removeElement(f.LiteralToClauses[wl.Literal1], clauseNumber)
+				f.LiteralToClauses[wl.Literal1] = newLiteralToClauses
+				if err != nil {
+					return FailedChange, err
+				}
 				wl.Literal1 = literal
 			} else {
+				newLiteralToClauses, err := removeElement(f.LiteralToClauses[wl.Literal2], clauseNumber)
+				f.LiteralToClauses[wl.Literal2] = newLiteralToClauses
+				if err != nil {
+					return FailedChange, err
+				}
 				wl.Literal2 = literal
 			}
-			return true, nil
+
+			f.WatchedLiterals[clauseNumber] = wl
+			f.LiteralToClauses[literal] = append(f.LiteralToClauses[literal], clauseNumber)
+
+			return SuccessfulChange, nil
 		}
 	}
-	return false, nil
+
+	// called both when both variables are assigned + when one variable is unassigned
+	return resolveImplication(f, clauseNumber, changeWL1)
 }
 
-func initialUnitPropagate(f *SATInstance) (bool, error) {
-	literalsToChange := make([]int, 0)
-	unitClauses, isFound := f.LiteralToClauses[0]
+func unitPropagate(f *SATInstance, literalProp int) (bool, error) {
+	if literalProp < 0 {
+		return false, errors.New("Literal has to Be Non-negative Integer")
+	}
+
+	unitClauses, isFound := f.LiteralToClauses[literalProp]
 	if !isFound {
 		return true, nil
 	}
 	for _, clauseNum := range unitClauses {
-		literal := f.WatchedLiterals[clauseNum].Literal1
-		if f.Vars[abs(literal)] != Unassigned && ((f.Vars[abs(literal)] != True && literal > 0) || (f.Vars[abs(literal)] != False && literal < 0)) {
-			return false, nil
-		}
-		switch literal > 0 {
-		case true:
-			f.Vars[abs(literal)] = True
-		case false:
-			f.Vars[abs(literal)] = False
-		}
-		literalsToChange = append(literalsToChange, literal)
-	}
-	for _, literal := range literalsToChange {
-		implicationMap, err := moveAllWatchedLiterals(f, abs(literal))
-		if err != nil {
-			return false, err
-		}
-		if !resolveImplications(f, implicationMap) {
-			return false, nil
-		}
-		// might want to move resolveImplications to end of moveWatchedLiteral
-	}
 
+		// checking if the propagating literal satifies the clause
+		_, isFound := f.Clauses[clauseNum][literalProp]
+		if isFound && f.Vars[literalProp] == True {
+			continue
+		}
+		_, isFound = f.Clauses[clauseNum][-literalProp]
+		if isFound && f.Vars[literalProp] == False {
+			continue
+		}
+
+		moveSuccesful, err := moveAllWatchedLiterals(f, literalProp)
+		return moveSuccesful, err
+		// moveSuccessful is if fails => then backtrack/unsat if init
+	}
 	return true, nil
 }
 
-func resolveImplications(f *SATInstance, implicationMap map[int]bool) bool {
-	for clauseNum, hasMoved := range implicationMap {
-		if hasMoved {
-			continue
-		}
-		wl := f.WatchedLiterals[clauseNum]
-		if (f.Vars[abs(wl.Literal2)] == True && wl.Literal2 > 0) ||
-			(f.Vars[abs(wl.Literal2)] != False && wl.Literal2 < 0) ||
-			(f.Vars[abs(wl.Literal1)] == True && wl.Literal1 > 0) ||
-			(f.Vars[abs(wl.Literal1)] != False && wl.Literal1 < 0) {
-			continue
-		}
-		changeWL1 := wl.Literal1 == Unassigned
+// should never be called, except after moving a literal
+func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, error) {
+	wl := f.WatchedLiterals[clauseNum]
+	isLiteral1Satisfying := (f.Vars[abs(wl.Literal1)] == True && wl.Literal1 > 0) || (f.Vars[abs(wl.Literal1)] == False && wl.Literal1 < 0)
+	isLiteral2Satisfying := (f.Vars[abs(wl.Literal2)] == True && wl.Literal2 > 0) || (f.Vars[abs(wl.Literal2)] == False && wl.Literal2 < 0)
+	isLiteral1Unassigned := f.Vars[abs(wl.Literal1)] == Unassigned
+	isLiteral2Unassigned := f.Vars[abs(wl.Literal2)] == Unassigned
 
+	successfulProp, err := false, error(nil)
+	if changeW1 {
+		// L2 unassigned => then set value of L2 and unit propogate
+		// if L2 is assigned poorly => then backtrack
+		// if L2 is assigned well => then we are fine
+
+		if !isLiteral2Satisfying && !isLiteral2Unassigned { //
+			return FailedChange, nil
+		}
+		if isLiteral2Satisfying {
+			return NoChange, nil
+		}
+		if wl.Literal2 > 0 {
+			f.Vars[abs(wl.Literal2)] = True
+		} else {
+			f.Vars[abs(wl.Literal2)] = False
+		}
+		successfulProp, err = unitPropagate(f, wl.Literal2)
+	} else {
+		// if L1 is assigned well => then we are fine
+		if !isLiteral1Satisfying && !isLiteral1Unassigned {
+			return FailedChange, nil
+		}
+		if isLiteral1Satisfying {
+			return NoChange, nil
+		}
+		if wl.Literal1 > 0 {
+			f.Vars[abs(wl.Literal1)] = True
+		} else {
+			f.Vars[abs(wl.Literal1)] = False
+		}
+		successfulProp, err = unitPropagate(f, wl.Literal1)
+	}
+	if successfulProp {
+		return SuccessfulChange, err
+	} else {
+		return FailedChange, err
 	}
 }
-
-// 0 1
-// -1 2
-// -2 -1
-
-// func UnitPropagate(f *SATInstance) {
-// 	for {
-// 		toRemove := 0
-// 		for _, clause := range f.Clauses {
-// 			if len(clause) == 1 {
-// 				//first key of clause map
-// 				for k := range clause {
-// 					toRemove = k
-// 				}
-// 				break
-// 			}
-// 		}
-// 		// fmt.Println("unit propping", f.PrintClauses())
-// 		// fmt.Println("removing", toRemove)
-// 		if toRemove == 0 {
-// 			break
-// 			// break if no unit clause
-// 		} else if toRemove < 0 {
-// 			f.Vars[toRemove*-1] = false
-// 			// all variables stored positive in map
-// 		} else {
-// 			f.Vars[toRemove] = true
-// 		}
-// 		newClauses := []map[int]bool{}
-// 		for _, clause := range f.Clauses {
-// 			// remove clause if it contains the value
-// 			_, containsVal := clause[toRemove]
-// 			if containsVal {
-// 				f.RemoveClauseFromCount(clause)
-// 				continue // can have both value and negation, but then still remove
-// 			}
-// 			// remove value from clause if it contains the negation
-// 			_, containsNegVal := clause[-toRemove]
-// 			if containsNegVal {
-// 				f.RemoveLiteralFromCount(-toRemove)
-// 				delete(clause, -toRemove)
-// 			}
-// 			// if len(clause) == 0 {
-// 			// 	fmt.Println("Unsat, clause empty")
-// 			// }
-// 			newClauses = append(newClauses, clause)
-// 		}
-// 		f.Clauses = newClauses
-// 	}
-// }
 
 func PureLiteralElim(f *SATInstance) {
 	for {
@@ -309,47 +327,6 @@ func PureLiteralElim(f *SATInstance) {
 
 func SplittingRule(f *SATInstance) (int, bool) {
 
-	// keys := make([]int, len(f.VarCount))
-	// i := 0
-	// for k := range f.VarCount {
-	// 	keys[i] = k
-	// 	i++
-	// }
-	// switch CountFunc {
-	// case DLCS, RDLCS:
-	// 	sort.SliceStable(keys, func(i, j int) bool {
-	// 		iCounts := f.VarCount[keys[i]]
-	// 		jCounts := f.VarCount[keys[j]]
-	// 		return (iCounts.NegCount + iCounts.PosCount) > (jCounts.NegCount + jCounts.PosCount)
-	// 		// counts stored in struct with NegCount and PosCount
-	// 	})
-	// case DLIS, RDLIS:
-	// 	sort.SliceStable(keys, func(i, j int) bool {
-	// 		iCounts := f.VarCount[keys[i]]
-	// 		jCounts := f.VarCount[keys[j]]
-	// 		return max(iCounts.NegCount, iCounts.PosCount) > max(jCounts.NegCount, jCounts.PosCount)
-	// 	})
-	// default:
-	// 	for _, clause := range f.Clauses {
-	// 		for variable := range clause {
-	// 			return variable, true
-	// 		}
-	// 	}
-	// }
-	// switch CountFunc {
-	// case DLCS, DLIS:
-	// 	return keys[0], f.VarCount[keys[0]].PosCount > f.VarCount[keys[0]].NegCount // explore true or false
-	// case RDLCS, RDLIS: // uniform at random first 5
-	// 	validLiterals := 0
-	// 	for i := 0; i < 5; i++ { // messed up if varcount less than 5 but like
-	// 		iCounts := f.VarCount[keys[i]]
-	// 		if iCounts.NegCount+iCounts.PosCount > 0 {
-	// 			validLiterals += 1
-	// 		}
-	// 	}
-	// 	keyToReturn := keys[rand.Intn(validLiterals)]
-	// 	return keyToReturn, f.VarCount[keyToReturn].PosCount > f.VarCount[keyToReturn].NegCount
-	// }
 	for _, clause := range f.Clauses {
 		for variable := range clause {
 			return variable, true
@@ -365,3 +342,17 @@ func SplittingRule(f *SATInstance) (int, bool) {
 // 	}
 // 	return b
 // }
+
+// removeElement removes the first occurrence of elem from slice and returns the modified slice.
+func removeElement(slice []int, elem int) ([]int, error) {
+	for i, v := range slice {
+		if v == elem {
+			// Swap the element to remove with the last element in the slice.
+			slice[i] = slice[len(slice)-1]
+			// Truncate the slice by one to remove the last element.
+			return slice[:len(slice)-1], nil
+		}
+	}
+	// If the element was not found, return the original slice.
+	return nil, errors.New("tried to remove an element not in the slice")
+}
