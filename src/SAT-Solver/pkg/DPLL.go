@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"errors"
+	"fmt"
 	"log"
 )
 
@@ -20,7 +21,7 @@ const (
 
 var CountFunc = 3
 
-func DPLL(f *SATInstance) bool, error {
+func DPLL(f *SATInstance) bool {
 	PureLiteralElim(f)
 
 	// checking for empty clause unsat
@@ -53,23 +54,30 @@ func DPLL(f *SATInstance) bool, error {
 	}
 
 	isSuccessful, err := unitPropagate(f, 0)
-	if !isSuccessful {
-		return false, nil
-	}
-	if err != nil {
-		return 
+	// TODO: need to set what 0 means for a watched literal value so that it is never true
+	// Right now, does not function with our variables/clauses (can have it work if set all to false and this to true or smth)
+	if !isSuccessful || err != nil {
+		return false
 	}
 
 	// if stack is empty, and we try to pop, then unsat
 
-	// literal, literalVal := SplittingRule(fPrime)
-	// // fmt.Println("Split on:", literal)
+	for {
+		literal, literalVal := SplittingRule(f)
+		fmt.Println("Split on:", literal)
 
-	// fRightPrime := DeepCopySATInstance(*fPrime)
+		f.Vars[literal] = True
+		if !literalVal {
+			f.Vars[literal] = False
+		}
+		f.StackAssignments.Push(literal, true)
+		isSuccessful, err := unitPropagate(f, literal)
+		if !isSuccessful {
+			// TODO: do backtracking
+		}
+		// TODO: need to finish when we have a solution
 
-	// if !literalVal {
-	// 	literal *= -1
-	// }
+	}
 
 	// newClause := make(map[int]int, 0)
 	// newClause[literal] = False
@@ -253,8 +261,10 @@ func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, erro
 		}
 		if wl.Literal2 > 0 {
 			f.Vars[abs(wl.Literal2)] = True
+			f.StackAssignments.Push(abs(wl.Literal2), false) // false means not branching
 		} else {
 			f.Vars[abs(wl.Literal2)] = False
+			f.StackAssignments.Push(abs(wl.Literal2), false)
 		}
 		successfulProp, err = unitPropagate(f, wl.Literal2)
 	} else {
@@ -267,8 +277,10 @@ func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, erro
 		}
 		if wl.Literal1 > 0 {
 			f.Vars[abs(wl.Literal1)] = True
+			f.StackAssignments.Push(abs(wl.Literal1), false)
 		} else {
 			f.Vars[abs(wl.Literal1)] = False
+			f.StackAssignments.Push(abs(wl.Literal1), false)
 		}
 		successfulProp, err = unitPropagate(f, wl.Literal1)
 	}
