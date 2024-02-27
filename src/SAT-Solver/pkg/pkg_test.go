@@ -27,6 +27,29 @@ func TestPreprocess(t *testing.T) {
 	}
 }
 
+func TestPreprocessSimple(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_simple2.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	SetWatchedLiterals(instance)
+	fmt.Println(instance)
+	instance.Vars[0] = False
+	triviallySAT, err := unitPropagate(instance, 0)
+
+	fmt.Println(instance)
+	fmt.Println(instance.Vars)
+
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if !triviallySAT {
+		t.Errorf("initial unit propagation failed")
+	}
+}
+
 func TestPureLiteralElim(t *testing.T) {
 	instance, err := ParseCNFFile("../toy_simple.cnf")
 	if err != nil {
@@ -46,21 +69,22 @@ func TestPureLiteralElim(t *testing.T) {
 	}
 }
 
-// func TestUnitPropStop(t *testing.T) {
-// 	instance, err := ParseCNFFile("../toy_simple.cnf")
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return
-// 	}
+func TestMoveWatchedLiteral(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_lecture.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	instance.Vars[2] = True
 
-// 	// fmt.Println(instance)
-// 	UnitPropagate(instance)
-// 	// fmt.Println(newInstance)
-// 	// fmt.Println(TValues)
-// 	if len(instance.Clauses) != 2 {
-// 		t.Errorf("Unit Propagation failed to stop")
-// 	}
-// }
+	SetWatchedLiterals(instance)
+	fmt.Println(instance)
+	moveWatchedLiteral(instance, 2, 1)
+	fmt.Println(instance)
+	if abs(instance.WatchedLiterals[1].Literal1) == 2 || abs(instance.WatchedLiterals[1].Literal2) == 2 {
+		t.Errorf("MoveWatchedLiteral failed")
+	}
+}
 
 // func TestPureLiteralElim(t *testing.T) {
 // 	instance, err := ParseCNFFile("../toy_simple.cnf")
@@ -176,7 +200,7 @@ func TestPreprocessUnitProp(t *testing.T) {
 	instance.AddClause(newClause)
 
 	fmt.Println(instance)
-	
+
 	isSAT, err := preprocessFormula(instance)
 	fmt.Println(instance)
 	fmt.Println(instance.Vars)

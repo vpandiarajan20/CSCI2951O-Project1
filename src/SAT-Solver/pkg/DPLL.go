@@ -49,11 +49,18 @@ func DPLL(f *SATInstance) (bool, error) {
 		for !isSuccessful {
 			// backtracks until branch where has not tried both true and false
 			prevVarAssignment := VariableAssignment{}
+			successfulPop := false
 			for {
-				prevVarAssignment, successfulPop := f.StackAssignments.Pop()
+				prevVarAssignment, successfulPop = f.StackAssignments.Pop()
 				if !successfulPop {
 					// if nothing else on stack, then unsat
 					return false, nil
+				}
+				if prevVarAssignment.IsBranch {
+					fmt.Println("Unsetting branch: ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
+				}
+				if prevVarAssignment.TriedBothWays {
+					fmt.Println(prevVarAssignment.Literal, "has been tried both ways")
 				}
 				if prevVarAssignment.IsBranch && !prevVarAssignment.TriedBothWays {
 					break
@@ -67,9 +74,10 @@ func DPLL(f *SATInstance) (bool, error) {
 			} else if currAssignment == Unassigned {
 				return false, errors.New("literal should be assigned to True or False if Branched on it")
 			}
-			f.Vars[uint(abs(literal))] = oppositeAssignment
-			f.StackAssignments.Push(literal, true, true)
-			isSuccessful, err = unitPropagate(f, literal)
+			f.Vars[uint(abs(prevVarAssignment.Literal))] = oppositeAssignment
+			fmt.Println("setting ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
+			f.StackAssignments.Push(prevVarAssignment.Literal, true, true)
+			isSuccessful, err = unitPropagate(f, prevVarAssignment.Literal)
 			if err != nil {
 				return false, err
 			}
@@ -187,7 +195,7 @@ func moveWatchedLiteral(f *SATInstance, wlToChange int, clauseNumber int) (int, 
 	// if we reach this point, it means the wlToChange has an unsatisfying assignment in this clause
 	changeWL1 := abs(wl.Literal1) == wlToChange
 
-	for _, literal := range f.Clauses[clauseNumber] {
+	for literal := range f.Clauses[clauseNumber] {
 		if abs(literal) == abs(wlToChange) {
 			continue
 		}
@@ -284,7 +292,7 @@ func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, erro
 			f.Vars[uint(abs(wl.Literal2))] = False
 			f.StackAssignments.Push(abs(wl.Literal2), false, false)
 		}
-		successfulProp, err = unitPropagate(f, wl.Literal2)
+		successfulProp, err = unitPropagate(f, abs(wl.Literal2))
 	} else {
 		// if L1 is assigned well => then we are fine
 		if !isLiteral1Satisfying && !isLiteral1Unassigned {
@@ -300,7 +308,7 @@ func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, erro
 			f.Vars[uint(abs(wl.Literal1))] = False
 			f.StackAssignments.Push(abs(wl.Literal1), false, false)
 		}
-		successfulProp, err = unitPropagate(f, wl.Literal1)
+		successfulProp, err = unitPropagate(f, abs(wl.Literal1))
 	}
 	if successfulProp {
 		return SuccessfulChange, err

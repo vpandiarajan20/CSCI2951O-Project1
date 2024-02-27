@@ -6,19 +6,22 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"time"
 )
 
 func main() {
 	// log.SetOutput(ioutil.Discard)
 	if len(os.Args) != 2 && len(os.Args) != 3 {
-		log.Fatalf("Usage: ./solver <file name> or Usage: ./solver <file name> <heuristic>")
+		log.Fatalf("Usage: ./solver <file name> or Usage: ./solver <file name> <output path>")
 	}
 	inputFile := os.Args[1]
 	filename := filepath.Base(inputFile)
+	// if len(os.Args) == 3 {
+	// 	pkg.CountFunc, _ = strconv.Atoi(os.Args[2])
+	// }
+	outputFile := "output_assignments.txt"
 	if len(os.Args) == 3 {
-		pkg.CountFunc, _ = strconv.Atoi(os.Args[2])
+		outputFile = os.Args[2]
 	}
 
 	instance, err := pkg.ParseCNFFile(inputFile)
@@ -35,15 +38,21 @@ func main() {
 	}
 	duration := time.Since(start)
 
+	file, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
 	if isSAT {
-		// TODO: write to a file
-		fmt.Println("final output", instance)
-		// fmt.Println("final truth values", newInstance.Vars)
-		// TODO: will probably have to remove 0 from map
+		// Removed the console print statements
+		// Write to the file instead
+		fmt.Fprintf(file, "final truth values %v\n", instance.Vars)
 		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\", \"Solution\": \"%v\"}\n", filename, duration.Seconds(), mapToString(instance.Vars))
 	} else {
 		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"UNSAT\"}\n", filename, duration.Seconds())
 	}
+
 }
 
 func mapToString(vars map[uint]int) string {

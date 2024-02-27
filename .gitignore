@@ -1,3 +1,6 @@
 *.cnf
 python_sol/
 sample_scripts/
+output.txt
+project1.out
+src/SAT-Solver/output/*
