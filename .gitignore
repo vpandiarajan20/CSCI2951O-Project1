@@ -4,3 +4,6 @@ sample_scripts/
 output.txt
 project1.out
 src/SAT-Solver/output/*
+output.tmp
+output_assignments.txt
+tmp.txt
