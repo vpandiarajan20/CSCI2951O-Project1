@@ -35,7 +35,7 @@ func DPLL(f *SATInstance) (bool, error) {
 			// out of variables to split on or only split on variables that are in alr satisfied clauses
 			return true, nil
 		}
-		fmt.Println("Split on:", literal, "set to", literalVal)
+		// fmt.Println("Split on:", literal, "set to", literalVal)
 
 		f.Vars[uint(abs(literal))] = True
 		if !literalVal {
@@ -57,10 +57,10 @@ func DPLL(f *SATInstance) (bool, error) {
 					return false, nil
 				}
 				if prevVarAssignment.IsBranch {
-					fmt.Println("Unsetting branch: ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
+					// fmt.Println("Unsetting branch: ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
 				}
 				if prevVarAssignment.TriedBothWays {
-					fmt.Println(prevVarAssignment.Literal, "has been tried both ways")
+					// fmt.Println(prevVarAssignment.Literal, "has been tried both ways")
 				}
 				if prevVarAssignment.IsBranch && !prevVarAssignment.TriedBothWays {
 					break
@@ -75,7 +75,7 @@ func DPLL(f *SATInstance) (bool, error) {
 				return false, errors.New("literal should be assigned to True or False if Branched on it")
 			}
 			f.Vars[uint(abs(prevVarAssignment.Literal))] = oppositeAssignment
-			fmt.Println("setting ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
+			// fmt.Println("setting ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
 			f.StackAssignments.Push(prevVarAssignment.Literal, true, true)
 			isSuccessful, err = unitPropagate(f, prevVarAssignment.Literal)
 			if err != nil {
@@ -372,21 +372,35 @@ func SplittingRule(f *SATInstance) (int, bool, bool) {
 	// 		}
 	// 	}
 	// }
+	bestLiteral := uint(0)
+	mostClauses := 0
 
-	for i, clause := range f.Clauses {
-		wl := f.WatchedLiterals[uint(abs(i))]
-		isLiteral1Satisfying := (f.Vars[uint(abs(wl.Literal1))] == True && wl.Literal1 >= 0) || (f.Vars[uint(abs(wl.Literal1))] == False && wl.Literal1 < 0)
-		isLiteral2Satisfying := (f.Vars[uint(abs(wl.Literal2))] == True && wl.Literal2 >= 0) || (f.Vars[uint(abs(wl.Literal2))] == False && wl.Literal2 < 0)
-		if isLiteral1Satisfying || isLiteral2Satisfying {
-			continue
-		}
-		// should i be returning a variable that is a watched literal
-		for variable := range clause {
-			if f.Vars[uint(abs(variable))] == Unassigned {
-				return abs(variable), variable > 0, false
+	for literal, clauses := range f.LiteralToClauses {
+
+		if f.Vars[literal] == Unassigned {
+			if len(clauses) > mostClauses {
+				mostClauses = len(clauses)
+				bestLiteral = literal
 			}
 		}
 	}
+	if bestLiteral != 0 {
+		return int(bestLiteral), true, false
+	}
+	// for i, clause := range f.Clauses {
+	// 	wl := f.WatchedLiterals[uint(abs(i))]
+	// 	isLiteral1Satisfying := (f.Vars[uint(abs(wl.Literal1))] == True && wl.Literal1 >= 0) || (f.Vars[uint(abs(wl.Literal1))] == False && wl.Literal1 < 0)
+	// 	isLiteral2Satisfying := (f.Vars[uint(abs(wl.Literal2))] == True && wl.Literal2 >= 0) || (f.Vars[uint(abs(wl.Literal2))] == False && wl.Literal2 < 0)
+	// 	if isLiteral1Satisfying || isLiteral2Satisfying {
+	// 		continue
+	// 	}
+	// 	// should i be returning a variable that is a watched literal
+	// 	for variable := range clause {
+	// 		if f.Vars[uint(abs(variable))] == Unassigned {
+	// 			return abs(variable), variable > 0, false
+	// 		}
+	// 	}
+	// }
 	return 0, false, true
 	// log.Fatal("splitting went wrong", f.PrintClauses())
 }
