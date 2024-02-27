@@ -90,4 +90,5 @@ for pair in key_value_pairs:
 # solve_dimacs('../src/SAT-Solver/toy_lecture.cnf')
 # solve_dimacs('../src/SAT-Solver/input/C181_3151.cnf')
 # solve_dimacs('../src/SAT-Solver/input/C208_3254.cnf')
-solve_dimacs('../src/SAT-Solver/input/C1065_082.cnf')
+# solve_dimacs('../src/SAT-Solver/input/C1065_082.cnf')
+solve_dimacs('../src/SAT-Solver/toy_lecture.cnf')

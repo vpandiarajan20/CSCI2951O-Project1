@@ -1,41 +1,50 @@
 package pkg
 
-// func TestUnitProp(t *testing.T) {
-// 	instance, err := ParseCNFFile("../toy_simple.cnf")
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return
-// 	}
+import (
+	"fmt"
+	"testing"
+)
 
-// 	newClause := make(map[int]bool, 0)
-// 	newClause[3] = true
-// 	instance.AddClause(newClause)
-// 	fmt.Println(instance)
-// 	UnitPropagate(instance)
-// 	fmt.Println(instance)
-// 	fmt.Println(instance.Vars)
-// 	if len(instance.Clauses) != 0 {
-// 		t.Errorf("Unit Propagation failed")
-// 	}
-// }
-// func TestUnitProp2(t *testing.T) {
-// 	instance, err := ParseCNFFile("../toy_simple.cnf")
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return
-// 	}
+func TestPreprocess(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_simple.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
-// 	newClause := make(map[int]bool, 0)
-// 	newClause[-3] = true
-// 	instance.AddClause(newClause)
-// 	// fmt.Println(instance)
-// 	UnitPropagate(instance)
-// 	// fmt.Println(instance)
-// 	// fmt.Println(instance.Vars)
-// 	if len(instance.Clauses) != 1 {
-// 		t.Errorf("Unit Propagation failed")
-// 	}
-// }
+	newClause := make(map[int]int, 0)
+	newClause[3] = Unassigned
+	instance.AddClause(newClause)
+	fmt.Println(instance)
+	triviallySAT, err := preprocessFormula(instance)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	fmt.Println(instance)
+	fmt.Println(instance.Vars)
+	if !triviallySAT {
+		t.Errorf("preprocess failed")
+	}
+}
+
+func TestPureLiteralElim(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_simple.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	newClause := make(map[int]int, 0)
+	newClause[-3] = Unassigned
+	instance.AddClause(newClause)
+	fmt.Println(instance)
+	PureLiteralElim(instance)
+	fmt.Println(instance)
+	fmt.Println(instance.Vars)
+	if len(instance.Clauses) != 0 {
+		t.Errorf("Pure Literal Elim failed")
+	}
+}
 
 // func TestUnitPropStop(t *testing.T) {
 // 	instance, err := ParseCNFFile("../toy_simple.cnf")
@@ -137,31 +146,47 @@ package pkg
 // 	}
 // }
 
-// func TestDPLL4Fail(t *testing.T) {
-// 	instance, err := ParseCNFFile("../toy_infeasible.cnf")
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return
-// 	}
+func TestPreprocessInfeasible(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_infeasible.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 
-// 	_, isSAT := DPLL(instance)
-// 	if isSAT {
-// 		t.Errorf("DPLL fail")
-// 	}
-// }
+	fmt.Println(instance)
+	isSAT, err := preprocessFormula(instance)
+	fmt.Println(instance)
+	fmt.Println(instance.Vars)
+	if err != nil {
+		t.Errorf("errored for some reason")
+	}
+	if !isSAT {
+		t.Errorf("Preprocess Failed")
+	}
+}
 
-// func TestDPLL4(t *testing.T) {
-// 	instance, err := ParseCNFFile("../toy_solveable.cnf")
-// 	if err != nil {
-// 		fmt.Println("Error:", err)
-// 		return
-// 	}
+func TestPreprocessUnitProp(t *testing.T) {
+	instance, err := ParseCNFFile("../toy_lecture.cnf")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	newClause := make(map[int]int, 0)
+	newClause[1] = Unassigned
+	instance.AddClause(newClause)
 
-// 	_, isSAT := DPLL(instance)
-// 	if !isSAT {
-// 		t.Errorf("DPLL fail")
-// 	}
-// }
+	fmt.Println(instance)
+	
+	isSAT, err := preprocessFormula(instance)
+	fmt.Println(instance)
+	fmt.Println(instance.Vars)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if !isSAT {
+		t.Errorf("DPLL fail")
+	}
+}
 
 // func TestRemoveClause(t *testing.T) {
 // 	instance, err := ParseCNFFile("../toy_simple.cnf")

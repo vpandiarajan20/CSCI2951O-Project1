@@ -14,45 +14,46 @@ const (
 type SATInstance struct {
 	NumVars          int
 	NumClauses       int
-	Vars             map[int]int
+	Vars             map[uint]int
 	StackAssignments Stack
 	Clauses          [](map[int]int)
-	WatchedLiterals  (map[int]struct {
+	WatchedLiterals  (map[uint]struct {
 		Literal1 int // watched literal 1
 		Literal2 int // watched literal 2
 	})
-	LiteralToClauses (map[int][]int)
+	LiteralToClauses (map[uint][]int)
+	// mandatory positive value literals
 }
 
 func NewSATInstance(numVars, numClauses int) *SATInstance {
 	return &SATInstance{
 		NumVars:    numVars,
 		NumClauses: numClauses,
-		Vars:       make(map[int]int),
+		Vars:       make(map[uint]int),
 		Clauses:    make([]map[int]int, 0),
-		WatchedLiterals: make(map[int]struct {
+		WatchedLiterals: make(map[uint]struct {
 			Literal1 int
 			Literal2 int
 		}, 0),
-		LiteralToClauses: make(map[int][]int, 0),
+		LiteralToClauses: make(map[uint][]int, 0),
 	}
 }
 func NewSATInstanceVars(numVars int) *SATInstance {
 	return &SATInstance{
 		NumVars:    numVars,
 		NumClauses: 0,
-		Vars:       make(map[int]int),
+		Vars:       make(map[uint]int),
 		Clauses:    make([]map[int]int, 0),
-		WatchedLiterals: make(map[int]struct {
+		WatchedLiterals: make(map[uint]struct {
 			Literal1 int
 			Literal2 int
 		}, 0),
-		LiteralToClauses: make(map[int][]int, 0),
+		LiteralToClauses: make(map[uint][]int, 0),
 	}
 }
 
 func (s *SATInstance) addVariable(literal int) {
-	s.Vars[abs(literal)] = Unassigned
+	s.Vars[uint(abs(literal))] = Unassigned
 }
 
 func (s *SATInstance) AddClause(clause map[int]int) {
@@ -66,15 +67,15 @@ func (s *SATInstance) String() string {
 
 	*buf = append(*buf, fmt.Sprintf("Number of variables: %d\n", s.NumVars))
 	*buf = append(*buf, fmt.Sprintf("Number of clauses: %d\n", s.NumClauses))
-	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", SortedKeys(s.Vars)))
+	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", SortedKeysUnsigned(s.Vars)))
 
 	for c, clause := range s.Clauses {
 		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, SortedKeys(clause)))
 	}
 
-	*buf = append(*buf, "VarCount:\n")
+	*buf = append(*buf, "WatchedLiterals:\n")
 	for varID, literals := range s.WatchedLiterals {
-		*buf = append(*buf, fmt.Sprintf("  Variable %d: Literal1=%d, Literal2=%d\n", varID, literals.Literal1, literals.Literal2))
+		*buf = append(*buf, fmt.Sprintf("  ClauseNumber %d: Literal1=%d, Literal2=%d\n", varID, literals.Literal1, literals.Literal2))
 	}
 
 	return fmt.Sprint(*buf)
@@ -90,7 +91,7 @@ func (s *SATInstance) PrintClauses() string {
 }
 
 func DeepCopySATInstance(instance SATInstance) *SATInstance {
-	newVars := make(map[int]int, len(instance.Vars))
+	newVars := make(map[uint]int, len(instance.Vars))
 	for k, v := range instance.Vars {
 		newVars[k] = v
 	}
@@ -103,7 +104,7 @@ func DeepCopySATInstance(instance SATInstance) *SATInstance {
 		}
 	}
 
-	newWL := make(map[int]struct {
+	newWL := make(map[uint]struct {
 		Literal1 int
 		Literal2 int
 	})
@@ -136,5 +137,14 @@ func SortedKeys(m map[int]int) []int {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
+	return keys
+}
+
+func SortedKeysUnsigned(m map[uint]int) []uint {
+	keys := make([]uint, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 	return keys
 }

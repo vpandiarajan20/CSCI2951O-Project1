@@ -29,21 +29,25 @@ func main() {
 
 	fmt.Println("initial equations", instance)
 	start := time.Now()
-	newInstance, isSAT := pkg.DPLL(instance)
+	isSAT, err := pkg.DPLL(instance)
+	if err != nil {
+		log.Panic(err.Error())
+	}
 	duration := time.Since(start)
 
 	if isSAT {
 		// TODO: write to a file
-		fmt.Println("final output", newInstance)
+		fmt.Println("final output", instance)
 		// fmt.Println("final truth values", newInstance.Vars)
-		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\", \"Solution\": \"%v\"}\n", filename, duration.Seconds(), mapToString(newInstance.Vars))
+		// TODO: will probably have to remove 0 from map
+		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\", \"Solution\": \"%v\"}\n", filename, duration.Seconds(), mapToString(instance.Vars))
 	} else {
 		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"UNSAT\"}\n", filename, duration.Seconds())
 	}
 }
 
-func mapToString(vars map[int]int) string {
-	keys := pkg.SortedKeys(vars)
+func mapToString(vars map[uint]int) string {
+	keys := pkg.SortedKeysUnsigned(vars)
 	var result string
 	for _, key := range keys {
 		switch vars[key] {
@@ -55,8 +59,6 @@ func mapToString(vars map[int]int) string {
 			// TODO: maybe throw an error
 			fmt.Printf("%d is left unassigned \n", key)
 			result += fmt.Sprintf("%d false ", key)
-		}
-		if vars[key] == pkg.True {
 		}
 	}
 	return result[:len(result)-1]

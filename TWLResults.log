@@ -1,0 +1,17 @@
+{"Instance": "C1065_064.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "C1065_082.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "C140.cnf", "Time": 0.14, "Result": "UNSAT"}
+{"Instance": "C1597_024.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "C1597_060.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "C1597_081.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "C168_128.cnf", "Time": 0.10, "Result": "UNSAT"}
+{"Instance": "C181_3151.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "C208_120.cnf", "Time": 0.10, "Result": "UNSAT"}
+{"Instance": "C208_3254.cnf", "Time": 0.17, "Result": "UNSAT"}
+{"Instance": "C210_30.cnf", "Time": 0.17, "Result": "UNSAT"}
+{"Instance": "C210_55.cnf", "Time": 0.11, "Result": "UNSAT"}
+{"Instance": "C459_4675.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "U50_1065_038.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "U50_1065_045.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "U50_4450_035.cnf", "Time": 0.00, "Result": "UNSAT"}
+{"Instance": "U75_1597_024.cnf", "Time": 0.00, "Result": "UNSAT"}
