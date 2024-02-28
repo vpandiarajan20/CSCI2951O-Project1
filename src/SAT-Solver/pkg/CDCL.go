@@ -17,13 +17,17 @@ const (
 var CountFunc = 3
 
 func CDCL(f *SATInstance) (bool, error) {
-	preprocessFormula(f)
+	isSuccessful, err := preprocessFormula(f)
+	if !isSuccessful {
+		return false, err
+	}
 
 	for !allVariablesAssigned(f) {
 		conflictClause, err := unitPropagate(f)
 		if err != nil {
 			return false, err
 		}
+
 		if conflictClause != nil {
 			f.NumConflicts += 1
 			log.Println("Conflict Clause", conflictClause)
@@ -116,6 +120,7 @@ func pureLiteralElim(f *SATInstance) {
 			newClauses := []map[int]bool{}
 			for _, clause := range f.Clauses {
 				_, containsVal := clause[literal]
+				// remove clauses that contain the pure literal
 				if containsVal {
 					continue
 				}
@@ -144,23 +149,6 @@ func determineClause(f *SATInstance, clause map[int]bool) int {
 	}
 	// if all variables are false, clause is false
 	return False
-}
-
-func determineAllClauses(f *SATInstance) int {
-	for _, clause := range f.Clauses {
-		if determineClause(f, clause) == False {
-			return False
-			// if any clause is false, formula is false
-		}
-	}
-	for _, clause := range f.Clauses {
-		if determineClause(f, clause) == Unassigned {
-			return Unassigned
-			// returns Unassigned if there is an unassigned variable and not alr False
-		}
-	}
-	// if all clauses are true, formula is true
-	return True
 }
 
 func isUnitClause(f *SATInstance, clause map[int]bool) (bool, int) {
@@ -200,17 +188,6 @@ func updateImplicationGraph(f *SATInstance, varToAssign uint, clause map[int]boo
 	f.ImplicationGraph[varToAssign] = impNode
 }
 
-func getUnitClauses(f *SATInstance) []map[int]bool {
-	unitClauses := make([]map[int]bool, 0)
-	for _, clause := range f.Clauses {
-		isUnit, _ := isUnitClause(f, clause)
-		if isUnit {
-			unitClauses = append(unitClauses, clause)
-		}
-	}
-	return unitClauses
-}
-
 func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]bool, error) {
 	if f.Level == 0 {
 		// if conflict at level 0, then UNSAT
@@ -219,9 +196,93 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 	history := make([]uint, 1)
 	history[0] = f.BranchingHist[f.Level]
 	history = append(history, f.PropagateHist[f.Level]...)
-	// get history of variables from level
+	log.Println("History for level ", f.Level, history)
+	poolLiterals := conflictClause
+	finishedLiterals := make(map[int]bool)
+	currLevelLiterals := make(map[int]bool)
+	prevLevelLiterals := make(map[int]bool)
 
-	// TODO: CHECK IMPLICATION GRAPH FOR PARENTS OF CONFLICT + RETURN THAT
+	for {
+		for literal := range poolLiterals {
+			if f.ImplicationGraph[uint(abs(literal))].Level == f.Level {
+				currLevelLiterals[literal] = true
+				// if literal set at current branch, add to current level literals
+			} else {
+				prevLevelLiterals[literal] = true
+				// if literal was set at a previous branch, add to previous level literals
+			}
+		}
+		if len(currLevelLiterals) == 1 {
+			// WHY IS THIS 1
+			// if one literal is at the current level, then we are done
+			break
+		}
+
+		lastAssigned, others, err := findLastAssigned(history, poolLiterals)
+		if err != nil {
+			return -1, nil, err
+		}
+		finishedLiterals[abs(lastAssigned)] = true // done processing this literal
+		currLevelLiterals = others                 // rest of the literals
+
+		poolClause := f.ImplicationGraph[uint(abs(lastAssigned))].Clause
+		poolLiterals = make(map[int]bool)
+
+		for literal := range poolClause {
+			if _, found := finishedLiterals[abs(literal)]; found {
+				continue
+			}
+
+			poolLiterals[literal] = true
+		}
+
+	}
+	learnedClause := make(map[int]bool)
+	for literal := range currLevelLiterals {
+		learnedClause[literal] = true
+	}
+	for literal := range prevLevelLiterals {
+		learnedClause[literal] = true
+	}
+
+	level := 0
+	if len(prevLevelLiterals) != 0 {
+		// if there are literals in the previous level, then the level is the max of the previous level
+		for literal := range prevLevelLiterals {
+			currlitLevel := f.ImplicationGraph[uint(abs(literal))].Level
+			if currlitLevel > level {
+				level = currlitLevel
+			}
+		}
+	} else {
+		// if there are no literals in the previous level, then the level is one less than the current level
+		level = f.Level - 1
+	}
+	return level, learnedClause, nil
+}
+
+func findLastAssigned(history []uint, clause map[int]bool) (int, map[int]bool, error) {
+	v := 0
+
+	sort.Slice(history, func(i, j int) bool { return history[i] > history[j] })
+	// reverses history
+
+	for _, varCurr := range history {
+		// iterate backwards through history to find last assigned var in clause
+		others := make(map[int]bool) // others in clause
+
+		for literal := range clause {
+			if uint(abs(literal)) == varCurr {
+				v = literal
+				continue
+			}
+			others[literal] = true
+		}
+		if v != 0 {
+			return v, others, nil
+		}
+	}
+	return 0, nil, errors.New("no last assigned var found")
 }
 
 func backtrack(f *SATInstance, level int) {
@@ -371,3 +432,32 @@ func max(a, b int) int {
 	}
 	return b
 }
+
+// func getUnitClauses(f *SATInstance) []map[int]bool {
+// 	unitClauses := make([]map[int]bool, 0)
+// 	for _, clause := range f.Clauses {
+// 		isUnit, _ := isUnitClause(f, clause)
+// 		if isUnit {
+// 			unitClauses = append(unitClauses, clause)
+// 		}
+// 	}
+// 	return unitClauses
+// }
+//
+//
+// func determineAllClauses(f *SATInstance) int {
+// 	for _, clause := range f.Clauses {
+// 		if determineClause(f, clause) == False {
+// 			return False
+// 			// if any clause is false, formula is false
+// 		}
+// 	}
+// 	for _, clause := range f.Clauses {
+// 		if determineClause(f, clause) == Unassigned {
+// 			return Unassigned
+// 			// returns Unassigned if there is an unassigned variable and not alr False
+// 		}
+// 	}
+// 	// if all clauses are true, formula is true
+// 	return True
+// }
