@@ -5,52 +5,16 @@ import (
 	"sort"
 )
 
-const (
-	Unassigned = iota
-	True
-	False
-)
-
 type SATInstance struct {
-	NumVars          int
-	NumClauses       int
-	Vars             map[int]int
-	StackAssignments Stack
-	Clauses          [](map[int]bool)
-	WatchedLiterals  (map[int]struct {
-		Literal1 int // watched literal 1
-		Literal2 int // watched literal 2
-	})
-	LearntClauses [](map[int]bool)
-	BranchingHist map[int][]int
-	PropagateHist map[int][]int
+	NumVars    int
+	NumClauses int
+	Vars       map[int]bool
+	Clauses    [](map[int]bool)
 }
 
 func NewSATInstance(numVars, numClauses int) *SATInstance {
 	return &SATInstance{
-		NumVars:    numVars,
-		NumClauses: numClauses,
-		Vars:       make(map[uint]int),
-		Clauses:    make([]map[int]bool, 0),
-		VarCount: make(map[int]struct {
-			PosCount int
-			NegCount int
-		}, 0),
-		LearntClauses: make([]map[int]bool, 0),
-		BranchingHist: make(map[int][]int),
-		PropagateHist: make(map[int][]int),
-	}
-}
-func NewSATInstanceVars(numVars int) *SATInstance {
-	return &SATInstance{
-		NumVars:    numVars,
-		NumClauses: 0,
-		Vars:       make(map[uint]int),
-		Clauses:    make([]map[int]bool, 0),
-		VarCount: make(map[int]struct {
-			PosCount int
-			NegCount int
-		}, 0),
+		numVars, numClauses, make(map[int]bool), make([]map[int]bool, 0),
 	}
 }
 
@@ -59,26 +23,17 @@ func (s *SATInstance) addVariable(literal int) {
 }
 
 func (s *SATInstance) AddClause(clause map[int]bool) {
-	// function adds clause to the SATInstance
 	s.Clauses = append(s.Clauses, clause)
-	s.NumClauses += 1
-
 }
-
 func (s *SATInstance) String() string {
 	var buf = new([]string)
 
 	*buf = append(*buf, fmt.Sprintf("Number of variables: %d\n", s.NumVars))
 	*buf = append(*buf, fmt.Sprintf("Number of clauses: %d\n", s.NumClauses))
-	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", SortedKeys(s.Vars)))
+	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", sortedKeys(s.Vars)))
 
 	for c, clause := range s.Clauses {
-		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, SortedKeys(clause)))
-	}
-
-	*buf = append(*buf, "VarCount:\n")
-	for varID, counts := range s.VarCount {
-		*buf = append(*buf, fmt.Sprintf("  Variable %d: PosCount=%d, NegCount=%d\n", varID, counts.PosCount, counts.NegCount))
+		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, sortedKeys(clause)))
 	}
 
 	return fmt.Sprint(*buf)
@@ -88,7 +43,7 @@ func (s *SATInstance) PrintClauses() string {
 	var buf = new([]string)
 	*buf = append(*buf, "\n")
 	for c, clause := range s.Clauses {
-		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, SortedKeys(clause)))
+		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, sortedKeys(clause)))
 	}
 	return fmt.Sprint(*buf)
 }
@@ -107,21 +62,11 @@ func DeepCopySATInstance(instance SATInstance) *SATInstance {
 		}
 	}
 
-	newVarCount := make(map[int]struct {
-		PosCount int
-		NegCount int
-	})
-	for k, v := range instance.VarCount {
-		newVarCount[k] = v
-	}
-
-	// Create a copied instance with deep-copied fields
 	copiedInstance := &SATInstance{
 		NumVars:    instance.NumVars,
 		NumClauses: instance.NumClauses,
 		Vars:       newVars,
 		Clauses:    newClauses,
-		VarCount:   newVarCount,
 	}
 
 	return copiedInstance
@@ -134,7 +79,7 @@ func abs(x int) int {
 	return x
 }
 
-func SortedKeys(m map[int]bool) []int {
+func sortedKeys(m map[int]bool) []int {
 	keys := make([]int, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
