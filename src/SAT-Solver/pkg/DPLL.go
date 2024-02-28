@@ -25,9 +25,9 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
 
 	// fmt.Println("Pre-UnitProp", fPrime)
-	UnitPropagate(fPrime) 
+	UnitPropagate(fPrime)
 	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
-	PureLiteralElim(fPrime) 
+	PureLiteralElim(fPrime)
 	// fmt.Println("Post-Literal, Pre-Split", fPrime)
 
 	// checking for empty clause unsat
@@ -83,7 +83,7 @@ func UnitPropagate(f *SATInstance) {
 		toRemove := 0
 		for _, clause := range f.Clauses {
 			if len(clause) == 1 {
-				//first key of clause map 
+				//first key of clause map
 				for k := range clause {
 					toRemove = k
 				}
@@ -106,7 +106,7 @@ func UnitPropagate(f *SATInstance) {
 			// remove clause if it contains the value
 			_, containsVal := clause[toRemove]
 			if containsVal {
-				f.RemoveClauseFromCount(clause) 
+				f.RemoveClauseFromCount(clause)
 				continue // can have both value and negation, but then still remove
 			}
 			// remove value from clause if it contains the negation
@@ -125,21 +125,27 @@ func UnitPropagate(f *SATInstance) {
 }
 
 func PureLiteralElim(f *SATInstance) {
-	// always shows up in same parity - remove all clauses with that literal
 	for {
-		pureLiterals := make([]int, 0)
-		for k, v := range f.VarCount {
-			if v.NegCount == 0 && v.PosCount > 0 {
-				pureLiterals = append(pureLiterals, k)
-			} else if v.PosCount == 0 && v.NegCount > 0 {
-				pureLiterals = append(pureLiterals, -k)
+		pureLiterals := make(map[int]bool, 0)
+		for _, clause := range f.Clauses {
+			for variable := range clause {
+				_, containsVal := pureLiterals[-variable]
+				if containsVal {
+					pureLiterals[-variable] = false
+					pureLiterals[variable] = false
+				} else {
+					pureLiterals[variable] = true
+				}
 			}
 		}
-		if len(pureLiterals) == 0 {
-			return
-		}
-		for _, literal := range pureLiterals {
-			 // actually filling out var
+		// log.Println("clauses:\n", f.PrintClauses())
+		// log.Println("pure literals", pureLiterals)
+		noChanges := true
+		for literal, isPure := range pureLiterals {
+			if !isPure {
+				continue
+			}
+			noChanges = false
 			if literal > 0 {
 				f.Vars[literal] = true
 			} else {
@@ -149,12 +155,14 @@ func PureLiteralElim(f *SATInstance) {
 			for _, clause := range f.Clauses {
 				_, containsVal := clause[literal]
 				if containsVal {
-					f.RemoveClauseFromCount(clause)
 					continue
 				}
 				newClauses = append(newClauses, clause)
 			}
 			f.Clauses = newClauses
+		}
+		if noChanges {
+			break
 		}
 	}
 }

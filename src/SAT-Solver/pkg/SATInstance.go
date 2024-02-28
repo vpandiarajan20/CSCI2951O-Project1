@@ -12,13 +12,14 @@ const (
 )
 
 type SATInstance struct {
-	NumVars    int
-	NumClauses int
-	Vars       map[uint]int
-	Clauses    [](map[int]bool)
-	VarCount   (map[int]struct {
-		PosCount int
-		NegCount int
+	NumVars          int
+	NumClauses       int
+	Vars             map[int]int
+	StackAssignments Stack
+	Clauses          [](map[int]bool)
+	WatchedLiterals  (map[int]struct {
+		Literal1 int // watched literal 1
+		Literal2 int // watched literal 2
 	})
 	LearntClauses [](map[int]bool)
 	BranchingHist map[int][]int
@@ -58,49 +59,10 @@ func (s *SATInstance) addVariable(literal int) {
 }
 
 func (s *SATInstance) AddClause(clause map[int]bool) {
-	for k := range clause {
-		if k < 0 {
-			varStruct := s.VarCount[-k]
-			varStruct.NegCount += 1
-			s.VarCount[-k] = varStruct
-		} else {
-			varStruct := s.VarCount[k]
-			varStruct.PosCount += 1
-			s.VarCount[k] = varStruct
-		}
-	}
+	// function adds clause to the SATInstance
 	s.Clauses = append(s.Clauses, clause)
 	s.NumClauses += 1
 
-}
-
-func (s *SATInstance) RemoveClauseFromCount(clause map[int]bool) {
-	for literal := range clause {
-		if literal < 0 {
-			varStruct := s.VarCount[-literal]
-			varStruct.NegCount -= 1
-			// fmt.Println("Trying to subtract from map where k is", -literal)
-			// fmt.Println("Map", s.VarCount)
-			// fmt.Println("Map entry", s.VarCount[-literal])
-			s.VarCount[-literal] = varStruct
-		} else {
-			varStruct := s.VarCount[literal]
-			varStruct.PosCount -= 1
-			s.VarCount[literal] = varStruct
-		}
-	}
-}
-
-func (s *SATInstance) RemoveLiteralFromCount(literal int) {
-	if literal < 0 {
-		varStruct := s.VarCount[-literal]
-		varStruct.NegCount -= 1
-		s.VarCount[-literal] = varStruct
-	} else {
-		varStruct := s.VarCount[literal]
-		varStruct.PosCount -= 1
-		s.VarCount[literal] = varStruct
-	}
 }
 
 func (s *SATInstance) String() string {
