@@ -5,6 +5,4 @@
 ########################################
 
 # Update this file with instructions on how to compile your code
-
-cd src/SAT-Solver
-go build -o ../../project1.out
+javac src/solver/sat/*.java
