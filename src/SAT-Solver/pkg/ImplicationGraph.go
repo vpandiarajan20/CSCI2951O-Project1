@@ -13,6 +13,7 @@ func NewImplicationNode(Var uint, Value int) *ImplicationNode {
 	return &ImplicationNode{
 		Var:      Var,
 		Value:    Value,
+		Level:    -1,
 		Parents:  make(map[*ImplicationNode]bool),
 		Children: make(map[*ImplicationNode]bool),
 		Clause:   make(map[int]bool),

@@ -178,6 +178,9 @@ func updateImplicationGraph(f *SATInstance, varToAssign uint, clause map[int]boo
 		// if clause is not nil, then it is an implication not a branched decision
 		for literal := range clause {
 			connection := f.ImplicationGraph[uint(abs(literal))]
+			if impNode.Parents == nil {
+				impNode.Parents = make(map[*ImplicationNode]bool)
+			}
 			impNode.Parents[&connection] = true  // add connection to parents
 			connection.Children[&impNode] = true // bidirection add to children
 		}

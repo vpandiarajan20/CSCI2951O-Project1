@@ -76,6 +76,7 @@ func NewSATInstanceVars(numVars int) *SATInstance {
 
 func (s *SATInstance) addVariable(literal int) {
 	s.Vars[uint(abs(literal))] = Unassigned
+	s.ImplicationGraph[uint(abs(literal))] = *NewImplicationNode(uint(abs(literal)), Unassigned)
 }
 
 func (s *SATInstance) AddClause(clause map[int]bool) {
