@@ -12,50 +12,70 @@ const (
 )
 
 type SATInstance struct {
-	NumVars          int
-	NumClauses       int
-	Vars             map[int]int
-	StackAssignments Stack
-	Clauses          [](map[int]bool)
-	WatchedLiterals  (map[int]struct {
-		Literal1 int // watched literal 1
-		Literal2 int // watched literal 2
-	})
-	LearntClauses [](map[int]bool)
-	BranchingHist map[int][]int
-	PropagateHist map[int][]int
+	NumVars      int
+	NumClauses   int
+	NumConflicts int
+	NumBranches  int
+	Vars         map[uint]int     // vars are always positive, literals not
+	Clauses      [](map[int]bool) // array of set of literals
+	VarCount     map[int]struct {
+		PosCount int
+		NegCount int
+	} // counts of positive and negative literals so that we can use them for branching
+	BranchingVars    map[uint]bool
+	Level            int                      // current level of the search
+	ImplicationGraph map[uint]ImplicationNode // map of variable to implication node
+	BranchingHist    map[int]uint
+	PropagateHist    map[int][]uint
+}
+
+type PropStruct struct {
+	Literal int
+	Clause  map[int]bool
 }
 
 func NewSATInstance(numVars, numClauses int) *SATInstance {
 	return &SATInstance{
-		NumVars:    numVars,
-		NumClauses: numClauses,
-		Vars:       make(map[uint]int),
-		Clauses:    make([]map[int]bool, 0),
+		NumVars:      numVars,
+		NumClauses:   numClauses,
+		NumConflicts: 0,
+		NumBranches:  0,
+		Vars:         make(map[uint]int),
+		Clauses:      make([]map[int]bool, 0),
 		VarCount: make(map[int]struct {
 			PosCount int
 			NegCount int
 		}, 0),
-		LearntClauses: make([]map[int]bool, 0),
-		BranchingHist: make(map[int][]int),
-		PropagateHist: make(map[int][]int),
+		BranchingVars:    make(map[uint]bool),
+		Level:            -1,
+		ImplicationGraph: make(map[uint]ImplicationNode),
+		BranchingHist:    make(map[int]uint),
+		PropagateHist:    make(map[int][]uint),
 	}
 }
+
 func NewSATInstanceVars(numVars int) *SATInstance {
 	return &SATInstance{
-		NumVars:    numVars,
-		NumClauses: 0,
-		Vars:       make(map[uint]int),
-		Clauses:    make([]map[int]bool, 0),
+		NumVars:      numVars,
+		NumClauses:   0,
+		NumConflicts: 0,
+		NumBranches:  0,
+		Vars:         make(map[uint]int),
+		Clauses:      make([]map[int]bool, 0),
 		VarCount: make(map[int]struct {
 			PosCount int
 			NegCount int
 		}, 0),
+		BranchingVars:    make(map[uint]bool),
+		Level:            -1,
+		ImplicationGraph: make(map[uint]ImplicationNode),
+		BranchingHist:    make(map[int]uint),
+		PropagateHist:    make(map[int][]uint),
 	}
 }
 
 func (s *SATInstance) addVariable(literal int) {
-	s.Vars[abs(literal)] = true
+	s.Vars[uint(abs(literal))] = Unassigned
 }
 
 func (s *SATInstance) AddClause(clause map[int]bool) {
@@ -70,7 +90,7 @@ func (s *SATInstance) String() string {
 
 	*buf = append(*buf, fmt.Sprintf("Number of variables: %d\n", s.NumVars))
 	*buf = append(*buf, fmt.Sprintf("Number of clauses: %d\n", s.NumClauses))
-	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", SortedKeys(s.Vars)))
+	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", SortedKeysUint(s.Vars)))
 
 	for c, clause := range s.Clauses {
 		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, SortedKeys(clause)))
@@ -94,7 +114,7 @@ func (s *SATInstance) PrintClauses() string {
 }
 
 func DeepCopySATInstance(instance SATInstance) *SATInstance {
-	newVars := make(map[int]bool, len(instance.Vars))
+	newVars := make(map[uint]int, len(instance.Vars))
 	for k, v := range instance.Vars {
 		newVars[k] = v
 	}
@@ -140,5 +160,14 @@ func SortedKeys(m map[int]bool) []int {
 		keys = append(keys, k)
 	}
 	sort.Ints(keys)
+	return keys
+}
+
+func SortedKeysUint(m map[uint]int) []uint {
+	keys := make([]uint, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 	return keys
 }
