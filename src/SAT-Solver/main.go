@@ -6,42 +6,47 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
 func main() {
 	// log.SetOutput(ioutil.Discard)
-	if len(os.Args) != 2 {
-		log.Fatalf("Usage: ./solver <file name>")
+	if len(os.Args) != 2 && len(os.Args) != 3 {
+		log.Fatalf("Usage: ./solver <file name> or Usage: ./solver <file name> <heuristic>")
 	}
 	inputFile := os.Args[1]
 	filename := filepath.Base(inputFile)
-
-	start := time.Now()
+	if len(os.Args) == 3 {
+		pkg.CountFunc, _ = strconv.Atoi(os.Args[2])
+	}
 
 	instance, err := pkg.ParseCNFFile(inputFile)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-	// newClause := make(map[int]bool, 0)
-	// newClause[3] = false
-	// newClause[-1] = false
-	// instance.AddClause(newClause)
-	// newClause = make(map[int]bool, 0)
-	// newClause[1] = false
-	// newClause[-2] = false
-	// newClause[-3] = false
-	// instance.AddClause(newClause)
+
 	fmt.Println("initial equations", instance)
+	start := time.Now()
 	newInstance, isSAT := pkg.DPLL(instance)
 	duration := time.Since(start)
 
 	if isSAT {
+		// TODO: write to a file
 		fmt.Println("final output", newInstance)
-		fmt.Println("final truth values", newInstance.Vars)
-		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\"}\n", filename, duration.Seconds())
+		// fmt.Println("final truth values", newInstance.Vars)
+		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\", \"Solution\": \"%v\"}\n", filename, duration.Seconds(), mapToString(newInstance.Vars))
 	} else {
 		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"UNSAT\"}\n", filename, duration.Seconds())
 	}
+}
+
+func mapToString(vars map[int]bool) string {
+	keys := pkg.SortedKeys(vars)
+	var result string
+	for _, key := range keys {
+		result += fmt.Sprintf("%d %v ", key, vars[key])
+	}
+	return result[:len(result)-1]
 }
