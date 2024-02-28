@@ -5,34 +5,46 @@ import (
 	"sort"
 )
 
+const (
+	Unassigned = iota
+	True
+	False
+)
+
 type SATInstance struct {
 	NumVars    int
 	NumClauses int
-	Vars       map[int]bool
+	Vars       map[uint]int
 	Clauses    [](map[int]bool)
 	VarCount   (map[int]struct {
 		PosCount int
 		NegCount int
 	})
+	LearntClauses [](map[int]bool)
+	BranchingHist map[int][]int
+	PropagateHist map[int][]int
 }
 
 func NewSATInstance(numVars, numClauses int) *SATInstance {
 	return &SATInstance{
 		NumVars:    numVars,
 		NumClauses: numClauses,
-		Vars:       make(map[int]bool),
+		Vars:       make(map[uint]int),
 		Clauses:    make([]map[int]bool, 0),
 		VarCount: make(map[int]struct {
 			PosCount int
 			NegCount int
 		}, 0),
+		LearntClauses: make([]map[int]bool, 0),
+		BranchingHist: make(map[int][]int),
+		PropagateHist: make(map[int][]int),
 	}
 }
 func NewSATInstanceVars(numVars int) *SATInstance {
 	return &SATInstance{
 		NumVars:    numVars,
 		NumClauses: 0,
-		Vars:       make(map[int]bool),
+		Vars:       make(map[uint]int),
 		Clauses:    make([]map[int]bool, 0),
 		VarCount: make(map[int]struct {
 			PosCount int
