@@ -13,15 +13,16 @@ const (
 	DLIS
 	RDLCS
 	RDLIS
+	VSIDS
 )
 
-var CountFunc = 1
+var CountFunc = 4
 
 func CDCL(f *SATInstance) (bool, error) {
-	// isSuccessful, err := preprocessFormula(f)
-	// if !isSuccessful {
-	// 	return false, err
-	// }
+	isSuccessful, err := preprocessFormula(f)
+	if !isSuccessful {
+		return false, err
+	}
 	// fmt.Println("post pure literl", f)
 
 	for !allVariablesAssigned(f) {
@@ -33,12 +34,12 @@ func CDCL(f *SATInstance) (bool, error) {
 
 		if conflictClause != nil {
 			f.NumConflicts += 1
-			// log.Println("Learned Clauses", f.LearnedClauses)
-			// log.Println("Conflict Clause", conflictClause)
-			// log.Println("Implication Graph")
-			// for _, i := range f.ImplicationGraph {
-			// 	// fmt.Println(i.String())
-			// }
+			log.Println("Learned Clauses", f.LearnedClauses)
+			log.Println("Conflict Clause", conflictClause)
+			log.Println("Implication Graph")
+			for _, i := range f.ImplicationGraph {
+				fmt.Println(i.String())
+			}
 			level, learnedClause, err := analyzeConflict(f, conflictClause)
 			f.LearnedClauses = append(f.LearnedClauses, learnedClause)
 			if err != nil {
@@ -48,7 +49,12 @@ func CDCL(f *SATInstance) (bool, error) {
 				return false, nil
 				// UNSAT!!
 			}
-			f.Clauses = append(f.Clauses, learnedClause)
+			f.AddClause(learnedClause)
+			condition := len(f.LearnedClauses) % 20
+			if condition == 0 {
+				f.DivideVarCounts()
+			}
+
 			// add learned clause to formula
 			fmt.Println("backtrcking to ", level)
 			backtrack(f, level)
@@ -199,8 +205,8 @@ func updateImplicationGraph(f *SATInstance, varToAssign uint, clause map[int]boo
 		for literal := range clause {
 			if abs(literal) != int(varToAssign) {
 				connection := f.ImplicationGraph[uint(abs(literal))]
-				impNode.Parents[&connection] = true  // add connection to parents
-				connection.Children[&impNode] = true // bidirection add to children
+				impNode.Parents[uint(abs(literal))] = true // add connection to parents
+				connection.Children[impNode.Var] = true    // bidirection add to children
 			}
 		}
 		impNode.Clause = clause
@@ -224,9 +230,9 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 	currLevelLiterals := make(map[int]bool)
 	prevLevelLiterals := make(map[int]bool)
 
-	// fmt.Println("Analyzing this clause", conflictClause)
+	fmt.Println("Analyzing this clause", conflictClause)
 	for {
-		// fmt.Println("pool literals", poolLiterals)
+		fmt.Println("pool literals", poolLiterals)
 		for literal := range poolLiterals {
 			if f.ImplicationGraph[uint(abs(literal))].Level == f.Level {
 				currLevelLiterals[literal] = true
@@ -241,7 +247,42 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 		// fmt.Println("currLevelLiterals ", currLevelLiterals)
 		// fmt.Println("prevLevelLiterals ", prevLevelLiterals)
 		// }
+
+		// go back until unique implication points - have one more literal from the current decision level
+		// 1. have a conflict clause - that is initial unit clause
+		// 2. look at the decision stack - pop off elements - even the latest decision that caused the conflict
+		// 3. if not related to clause ignore it (unassign it); if decision (branch/implication) involves in clause,
+		// fetch all the literals that are parents of it --> of these, all the ones from previous decision levels go into clause
+		// all from previous decision level go into clasuse
+		// ones from current decision level added into queue -- only on the current queue left (might still have many from current decision level)
+		// when conflict then invert everything
+		// 4. when current set has only 1 literal, then you stop - then you have conflict clause
+		// all vars from prev decision levels
+
+		// ()
+		// while queue len > 1 {
+		// 	pop from deicion stack
+		// 	unassign unrelated to conflict
+		// 	related to conflict then fetch all parents and unassign -- just need immediate parents
+		// 	all parents from previous decision levels go into conflict cause, all parents from the current decision level go into queue
+		// }
+		// once do this, generate a new unit want to do this properly
+		// backtrack all the way to level 0 if learn a unit clause
+
+		// 1. first check if all stuff correct -> if step through this with debugger is useless -> have assertions that check that everything correct is dontconflictClause
+		// -> after conflict clause, everything except one variable is assigned and in conflict
+		// -> watched literals - after make changes then watched literals
+		// -> assertions catch bug
+		// 	-> if have time
+
+		// when backtrack, find the highest decision in the clause that is not from the current decision level
+		// then backtrack to that level
+		// the literal from current decision level becomes a unit - all other things are still assigned from clause
+		// every time create conflict clause, get a unit propagation immediately after
+
 		if len(currLevelLiterals) == 1 {
+			// this is uip
+
 			// goes up all the way uptil onely one
 			// fmt.Println("length 1 currLevelLiterals", currLevelLiterals)
 			// WHY IS THIS 1
@@ -291,7 +332,7 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 		// if there are no literals in the previous level, then the level is one less than the current level
 		level = f.Level - 1
 	}
-	// fmt.Println("Learned the following clause", learnedClause)
+	fmt.Println("Learned the following clause", learnedClause)
 	return level, learnedClause, nil
 }
 
@@ -323,16 +364,16 @@ func backtrack(f *SATInstance, level int) {
 		if node.Level > level {
 			node.Value = Unassigned
 			node.Level = -1
-			node.Parents = make(map[*ImplicationNode]bool)
-			node.Children = make(map[*ImplicationNode]bool)
+			node.Parents = make(map[uint]bool)
+			node.Children = make(map[uint]bool)
 			node.Clause = make(map[int]bool)
 			f.ImplicationGraph[currVar] = node
 			f.Vars[currVar] = Unassigned
 		} else {
 
-			nodeNewChildren := make(map[*ImplicationNode]bool)
+			nodeNewChildren := make(map[uint]bool)
 			for child := range node.Children {
-				if child.Level > level {
+				if f.ImplicationGraph[child].Level > level {
 					continue
 				}
 				nodeNewChildren[child] = true
@@ -426,7 +467,14 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 		keys[i] = k
 		i++
 	}
-	switch CountFunc {
+
+	// if very few clauses, then use DLIS instead of VSIDS
+	CountFuncMod := CountFunc
+	if CountFuncMod == 4 && len(f.LearnedClauses) < 4 {
+		CountFuncMod = 1
+	}
+
+	switch CountFuncMod {
 	case DLCS, RDLCS:
 		sort.Slice(keys, func(i, j int) bool {
 			iCounts := f.VarCount[keys[i]]
@@ -437,7 +485,7 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 			return keys[i] < keys[j]
 			// counts stored in struct with NegCount and PosCount
 		})
-	case DLIS, RDLIS:
+	case DLIS, RDLIS, VSIDS:
 		sort.Slice(keys, func(i, j int) bool {
 			iCounts := f.VarCount[keys[i]]
 			jCounts := f.VarCount[keys[j]]
@@ -455,13 +503,12 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 		}
 	}
 	switch CountFunc {
-	case DLCS, DLIS:
+	case DLCS, DLIS, VSIDS:
 		for _, k := range keys {
 			if f.Vars[uint(abs(k))] == Unassigned {
 				return uint(abs(k)), f.VarCount[k].PosCount > f.VarCount[k].NegCount
 			}
 		}
-
 		return uint(abs(keys[0])), f.VarCount[keys[0]].PosCount > f.VarCount[keys[0]].NegCount // explore true or false
 	case RDLCS, RDLIS: // uniform at random first 5
 		validLiterals := 0

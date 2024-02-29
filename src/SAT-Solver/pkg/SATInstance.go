@@ -12,13 +12,14 @@ const (
 )
 
 type SATInstance struct {
-	NumVars      int
-	NumClauses   int
-	NumConflicts int
-	NumBranches  int
-	Vars         map[uint]int     // vars are always positive, literals not
-	Clauses      [](map[int]bool) // array of set of literals
-	VarCount     map[int]struct {
+	NumVars        int
+	NumClauses     int
+	NumLearnedVars int
+	NumConflicts   int
+	NumBranches    int
+	Vars           map[uint]int     // vars are always positive, literals not
+	Clauses        [](map[int]bool) // array of set of literals
+	VarCount       map[int]struct {
 		PosCount int
 		NegCount int
 	} // counts of positive and negative literals so that we can use them for branching
@@ -77,7 +78,30 @@ func NewSATInstanceVars(numVars int) *SATInstance {
 
 func (s *SATInstance) addVariable(literal int) {
 	s.Vars[uint(abs(literal))] = Unassigned
+	s.VarCount[(abs(literal))] = struct {
+		PosCount int
+		NegCount int
+	}{0, 0}
 	s.ImplicationGraph[uint(abs(literal))] = *NewImplicationNode(uint(abs(literal)), Unassigned)
+}
+
+func (s *SATInstance) AddInitClause(clause map[int]bool) {
+	if CountFunc < 4 {
+		for k := range clause {
+			if k < 0 {
+				varStruct := s.VarCount[-k]
+				varStruct.NegCount += 1
+				s.VarCount[-k] = varStruct
+			} else {
+				varStruct := s.VarCount[k]
+				varStruct.PosCount += 1
+				s.VarCount[k] = varStruct
+			}
+		}
+	}
+	s.Clauses = append(s.Clauses, clause)
+	s.NumClauses += 1
+
 }
 
 func (s *SATInstance) AddClause(clause map[int]bool) {
@@ -93,8 +117,22 @@ func (s *SATInstance) AddClause(clause map[int]bool) {
 		}
 	}
 	s.Clauses = append(s.Clauses, clause)
-	s.NumClauses += 1
+}
 
+func (s *SATInstance) DivideVarCounts() {
+	fmt.Println("Dividing var counts", s.VarCount)
+	// newVarCount := make(map[int]struct {
+	// 	PosCount int
+	// 	NegCount int
+	// }, 0)
+	for key := range s.VarCount {
+		varStruct := s.VarCount[key]
+		varStruct.NegCount = varStruct.NegCount / 5
+		varStruct.PosCount = varStruct.PosCount / 5
+		s.VarCount[key] = varStruct
+	}
+	// s.VarCount = newVarCount
+	fmt.Println("Divided var counts", s.VarCount)
 }
 
 func (s *SATInstance) RemoveClauseFromCount(clause map[int]bool) {
