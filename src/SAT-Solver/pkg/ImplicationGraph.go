@@ -1,5 +1,7 @@
 package pkg
 
+import "fmt"
+
 type ImplicationNode struct {
 	Var      uint
 	Value    int
@@ -41,4 +43,23 @@ func AllParents(Node *ImplicationNode) map[*ImplicationNode]bool {
 		}
 	}
 	return allParents
+}
+
+func (n *ImplicationNode) String() string {
+	retVal := fmt.Sprintf("Var: %d, Value: %d, Level: %d, Clause: %v", n.Var, n.Value, n.Level, n.Clause)
+	if len(n.Parents) > 0 {
+		retVal += fmt.Sprintln()
+		retVal += "Parents:"
+		for parent := range n.Parents {
+			retVal = retVal + fmt.Sprintf(" %d ", parent.Var)
+		}
+	}
+	if len(n.Children) > 0 {
+		retVal += fmt.Sprintln()
+		retVal += "Children:"
+		for child := range n.Children {
+			retVal = retVal + fmt.Sprintf(" %d ", child.Var)
+		}
+	}
+	return retVal
 }

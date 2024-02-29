@@ -23,7 +23,8 @@ type SATInstance struct {
 		NegCount int
 	} // counts of positive and negative literals so that we can use them for branching
 	BranchingVars    map[uint]bool
-	Level            int                      // current level of the search
+	Level            int // current level of the search
+	LearnedClauses   [](map[int]bool)
 	ImplicationGraph map[uint]ImplicationNode // map of variable to implication node
 	BranchingHist    map[int]uint
 	PropagateHist    map[int][]uint
@@ -47,7 +48,7 @@ func NewSATInstance(numVars, numClauses int) *SATInstance {
 			NegCount int
 		}, 0),
 		BranchingVars:    make(map[uint]bool),
-		Level:            -1,
+		Level:            0,
 		ImplicationGraph: make(map[uint]ImplicationNode),
 		BranchingHist:    make(map[int]uint),
 		PropagateHist:    make(map[int][]uint),
@@ -67,7 +68,7 @@ func NewSATInstanceVars(numVars int) *SATInstance {
 			NegCount int
 		}, 0),
 		BranchingVars:    make(map[uint]bool),
-		Level:            -1,
+		Level:            0,
 		ImplicationGraph: make(map[uint]ImplicationNode),
 		BranchingHist:    make(map[int]uint),
 		PropagateHist:    make(map[int][]uint),
@@ -80,10 +81,37 @@ func (s *SATInstance) addVariable(literal int) {
 }
 
 func (s *SATInstance) AddClause(clause map[int]bool) {
-	// function adds clause to the SATInstance
+	for k := range clause {
+		if k < 0 {
+			varStruct := s.VarCount[-k]
+			varStruct.NegCount += 1
+			s.VarCount[-k] = varStruct
+		} else {
+			varStruct := s.VarCount[k]
+			varStruct.PosCount += 1
+			s.VarCount[k] = varStruct
+		}
+	}
 	s.Clauses = append(s.Clauses, clause)
 	s.NumClauses += 1
 
+}
+
+func (s *SATInstance) RemoveClauseFromCount(clause map[int]bool) {
+	for literal := range clause {
+		if literal < 0 {
+			varStruct := s.VarCount[-literal]
+			varStruct.NegCount -= 1
+			// fmt.Println("Trying to subtract from map where k is", -literal)
+			// fmt.Println("Map", s.VarCount)
+			// fmt.Println("Map entry", s.VarCount[-literal])
+			s.VarCount[-literal] = varStruct
+		} else {
+			varStruct := s.VarCount[literal]
+			varStruct.PosCount -= 1
+			s.VarCount[literal] = varStruct
+		}
+	}
 }
 
 func (s *SATInstance) String() string {

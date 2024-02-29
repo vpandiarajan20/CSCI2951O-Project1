@@ -1,3 +1,5 @@
 *.cnf
-python_sol/
 sample_scripts/
+*.prof
+*.exe
+*.out

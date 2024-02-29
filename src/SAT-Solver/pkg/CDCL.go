@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"sort"
@@ -14,26 +15,32 @@ const (
 	RDLIS
 )
 
-var CountFunc = 3
+var CountFunc = 1
 
 func CDCL(f *SATInstance) (bool, error) {
-	isSuccessful, err := preprocessFormula(f)
-	if !isSuccessful {
-		return false, err
-	}
+	// isSuccessful, err := preprocessFormula(f)
+	// if !isSuccessful {
+	// 	return false, err
+	// }
+	// fmt.Println("post pure literl", f)
 
 	for !allVariablesAssigned(f) {
 		conflictClause, err := unitPropagate(f)
+
 		if err != nil {
 			return false, err
 		}
 
 		if conflictClause != nil {
 			f.NumConflicts += 1
-			log.Println("Conflict Clause", conflictClause)
-			log.Println("Implication Nodes", f.ImplicationGraph)
-
+			// log.Println("Learned Clauses", f.LearnedClauses)
+			// log.Println("Conflict Clause", conflictClause)
+			// log.Println("Implication Graph")
+			// for _, i := range f.ImplicationGraph {
+			// 	// fmt.Println(i.String())
+			// }
 			level, learnedClause, err := analyzeConflict(f, conflictClause)
+			f.LearnedClauses = append(f.LearnedClauses, learnedClause)
 			if err != nil {
 				return false, err
 			}
@@ -43,6 +50,7 @@ func CDCL(f *SATInstance) (bool, error) {
 			}
 			f.Clauses = append(f.Clauses, learnedClause)
 			// add learned clause to formula
+			fmt.Println("backtrcking to ", level)
 			backtrack(f, level)
 			// backtrack to level
 			f.Level = level
@@ -59,11 +67,20 @@ func CDCL(f *SATInstance) (bool, error) {
 			}
 			f.Level += 1
 			f.NumBranches += 1
+			fmt.Printf("--------------------------------------------Decision Level %d--------------------- \n", f.Level)
+			fmt.Println("Branch, Var:", varToAssign, "Assigned", f.Vars[varToAssign] == True)
+
 			f.BranchingHist[f.Level] = varToAssign
 			f.PropagateHist[f.Level] = make([]uint, 0)
 			updateImplicationGraph(f, varToAssign, nil)
 		}
 	}
+	// fmt.Println("branching history", f.BranchingHist)
+	// fmt.Println("propagate history", f.PropagateHist)
+	// fmt.Println("implication graph")
+	// for _, i := range f.ImplicationGraph {
+	// 	fmt.Println(i.String())
+	// }
 	return true, nil
 }
 
@@ -135,16 +152,19 @@ func pureLiteralElim(f *SATInstance) {
 }
 
 func determineClause(f *SATInstance, clause map[int]bool) int {
-	for variable := range clause { // iterate through all variables in clause
-		if f.Vars[uint(abs(variable))] == True {
-			// if any variable is true, clause is true
-			return True
-		}
-	}
 	for variable := range clause {
 		if f.Vars[uint(abs(variable))] == Unassigned {
-			// returns Unassigned if there is an unassigned variable and not alr True
+			// returns Unassigned if there is an unassigned variable
 			return Unassigned
+		}
+	}
+
+	// TODO: why is this ordered the way it is?
+
+	for variable := range clause { // iterate through all variables in clause
+		if (variable > 0 && f.Vars[uint(abs(variable))] == True) || (variable < 0 && f.Vars[uint(abs(variable))] == False) {
+			// if any variable is true and shows up as pos || any var is false and shows up as neg, clause is true
+			return True
 		}
 	}
 	// if all variables are false, clause is false
@@ -156,7 +176,7 @@ func isUnitClause(f *SATInstance, clause map[int]bool) (bool, int) {
 	numUnassigned := 0
 	litUnassigned := 0
 	for literal := range clause {
-		if f.Vars[uint(abs(literal))] == False {
+		if (literal < 0 && f.Vars[uint(abs(literal))] == True) || (literal > 0 && f.Vars[uint(abs(literal))] == False) {
 			numFalses += 1
 		} else if f.Vars[uint(abs(literal))] == Unassigned {
 			numUnassigned += 1
@@ -177,15 +197,13 @@ func updateImplicationGraph(f *SATInstance, varToAssign uint, clause map[int]boo
 	if clause != nil {
 		// if clause is not nil, then it is an implication not a branched decision
 		for literal := range clause {
-			connection := f.ImplicationGraph[uint(abs(literal))]
-			if impNode.Parents == nil {
-				impNode.Parents = make(map[*ImplicationNode]bool)
+			if abs(literal) != int(varToAssign) {
+				connection := f.ImplicationGraph[uint(abs(literal))]
+				impNode.Parents[&connection] = true  // add connection to parents
+				connection.Children[&impNode] = true // bidirection add to children
 			}
-			impNode.Parents[&connection] = true  // add connection to parents
-			connection.Children[&impNode] = true // bidirection add to children
 		}
 		impNode.Clause = clause
-
 	}
 
 	f.ImplicationGraph[varToAssign] = impNode
@@ -199,13 +217,16 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 	history := make([]uint, 1)
 	history[0] = f.BranchingHist[f.Level]
 	history = append(history, f.PropagateHist[f.Level]...)
-	log.Println("History for level ", f.Level, history)
+	// log.Println("History for level ", f.Level, history)
+
 	poolLiterals := conflictClause
 	finishedLiterals := make(map[int]bool)
 	currLevelLiterals := make(map[int]bool)
 	prevLevelLiterals := make(map[int]bool)
 
+	// fmt.Println("Analyzing this clause", conflictClause)
 	for {
+		// fmt.Println("pool literals", poolLiterals)
 		for literal := range poolLiterals {
 			if f.ImplicationGraph[uint(abs(literal))].Level == f.Level {
 				currLevelLiterals[literal] = true
@@ -215,13 +236,21 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 				// if literal was set at a previous branch, add to previous level literals
 			}
 		}
+		// if len(currLevelLiterals) < 3 {
+		// fmt.Println("poolLiterals ", poolLiterals)
+		// fmt.Println("currLevelLiterals ", currLevelLiterals)
+		// fmt.Println("prevLevelLiterals ", prevLevelLiterals)
+		// }
 		if len(currLevelLiterals) == 1 {
+			// goes up all the way uptil onely one
+			// fmt.Println("length 1 currLevelLiterals", currLevelLiterals)
 			// WHY IS THIS 1
 			// if one literal is at the current level, then we are done
 			break
 		}
 
-		lastAssigned, others, err := findLastAssigned(history, poolLiterals)
+		lastAssigned, others, err := findLastAssigned(history, currLevelLiterals)
+		// fmt.Println("Last Assigned:", lastAssigned, "Others", others)
 		if err != nil {
 			return -1, nil, err
 		}
@@ -238,6 +267,7 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 
 			poolLiterals[literal] = true
 		}
+		// fmt.Println("Done Literals", finishedLiterals)
 
 	}
 	learnedClause := make(map[int]bool)
@@ -261,6 +291,7 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 		// if there are no literals in the previous level, then the level is one less than the current level
 		level = f.Level - 1
 	}
+	// fmt.Println("Learned the following clause", learnedClause)
 	return level, learnedClause, nil
 }
 
@@ -269,7 +300,6 @@ func findLastAssigned(history []uint, clause map[int]bool) (int, map[int]bool, e
 
 	sort.Slice(history, func(i, j int) bool { return history[i] > history[j] })
 	// reverses history
-
 	for _, varCurr := range history {
 		// iterate backwards through history to find last assigned var in clause
 		others := make(map[int]bool) // others in clause
@@ -285,7 +315,7 @@ func findLastAssigned(history []uint, clause map[int]bool) (int, map[int]bool, e
 			return v, others, nil
 		}
 	}
-	return 0, nil, errors.New("no last assigned var found")
+	return 0, nil, errors.New(fmt.Sprint("no last assigned var found, looking in clause ", clause))
 }
 
 func backtrack(f *SATInstance, level int) {
@@ -299,6 +329,7 @@ func backtrack(f *SATInstance, level int) {
 			f.ImplicationGraph[currVar] = node
 			f.Vars[currVar] = Unassigned
 		} else {
+
 			nodeNewChildren := make(map[*ImplicationNode]bool)
 			for child := range node.Children {
 				if child.Level > level {
@@ -342,7 +373,7 @@ func unitPropagate(f *SATInstance) (map[int]bool, error) {
 				return clause, nil
 			}
 			isUnit, unitLit := isUnitClause(f, clause)
-			if isUnit {
+			if !isUnit {
 				continue
 			}
 			propStruct := PropStruct{
@@ -351,31 +382,37 @@ func unitPropagate(f *SATInstance) (map[int]bool, error) {
 			}
 			propQueue = append(propQueue, propStruct)
 		}
+
+		sort.Slice(propQueue, func(i, j int) bool { return propQueue[i].Literal < propQueue[j].Literal })
 		if len(propQueue) == 0 {
 			// nothing to propogate/force so returns nil
 			return nil, nil
 		}
 		for _, propStruct := range propQueue {
 			propVar := uint(abs(propStruct.Literal))
-			if f.Vars[propVar] == Unassigned {
-				// assigns to forced value based on unit propogation
-				if propStruct.Literal > 0 {
-					f.Vars[propVar] = True
-				} else {
-					f.Vars[propVar] = False
-				}
-				updateImplicationGraph(f, propVar, propStruct.Clause)
 
-				_, found := f.PropagateHist[f.Level]
-				if found {
-					f.PropagateHist[f.Level] = append(f.PropagateHist[f.Level], propVar)
-				} else {
-					// otherwise conflict clause is on the 0th level so should be UNSAT
-					log.Println("PropagateHist Key Access at ", f.Level, " not found as expected")
-				}
+			// assigns to forced value based on unit propogation
+			if propStruct.Literal > 0 {
+				f.Vars[propVar] = True
+				// fmt.Println("setting", propVar, "to true")
 			} else {
-				return nil, errors.New("propogating a variable that is already assigned")
+				f.Vars[propVar] = False
+				// fmt.Println("setting", propVar, "to false")
 			}
+			updateImplicationGraph(f, propVar, propStruct.Clause)
+			_, found := f.PropagateHist[f.Level]
+			if found {
+				f.PropagateHist[f.Level] = append(f.PropagateHist[f.Level], propVar)
+			} else {
+				// otherwise conflict clause is on the 0th level so should be UNSAT
+				// log.Println("PropagateHist Key Access at ", f.Level, " not found as expected")
+			}
+
+			// no else because need to prop twice to see that conflict
+
+			// } else {
+			// 	return nil, errors.New(fmt.Sprint("propagating a variable that is already assigned:", propVar))
+			// }
 		}
 	}
 }
@@ -391,18 +428,25 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 	}
 	switch CountFunc {
 	case DLCS, RDLCS:
-		sort.SliceStable(keys, func(i, j int) bool {
+		sort.Slice(keys, func(i, j int) bool {
 			iCounts := f.VarCount[keys[i]]
 			jCounts := f.VarCount[keys[j]]
-			return (iCounts.NegCount + iCounts.PosCount) > (jCounts.NegCount + jCounts.PosCount)
+			if (iCounts.NegCount + iCounts.PosCount) > (jCounts.NegCount + jCounts.PosCount) {
+				return true
+			}
+			return keys[i] < keys[j]
 			// counts stored in struct with NegCount and PosCount
 		})
 	case DLIS, RDLIS:
-		sort.SliceStable(keys, func(i, j int) bool {
+		sort.Slice(keys, func(i, j int) bool {
 			iCounts := f.VarCount[keys[i]]
 			jCounts := f.VarCount[keys[j]]
-			return max(iCounts.NegCount, iCounts.PosCount) > max(jCounts.NegCount, jCounts.PosCount)
+			if max(iCounts.NegCount, iCounts.PosCount) > max(jCounts.NegCount, jCounts.PosCount) {
+				return true
+			}
+			return keys[i] < keys[j]
 		})
+		// fmt.Println("sorted keys", keys)
 	default:
 		for _, clause := range f.Clauses {
 			for variable := range clause {
@@ -412,6 +456,12 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 	}
 	switch CountFunc {
 	case DLCS, DLIS:
+		for _, k := range keys {
+			if f.Vars[uint(abs(k))] == Unassigned {
+				return uint(abs(k)), f.VarCount[k].PosCount > f.VarCount[k].NegCount
+			}
+		}
+
 		return uint(abs(keys[0])), f.VarCount[keys[0]].PosCount > f.VarCount[keys[0]].NegCount // explore true or false
 	case RDLCS, RDLIS: // uniform at random first 5
 		validLiterals := 0
