@@ -7,29 +7,30 @@ type ImplicationNode struct {
 	Value   int
 	Level   int
 	Parents map[uint]bool
-	Clause  map[int]bool
+	// Children map[uint]bool
+	Clause map[int]bool
 	// TODO: parents and children should probaly be a list?
 }
 
 func NewImplicationNode(Var uint, Value int) *ImplicationNode {
 	return &ImplicationNode{
-		Var:      Var,
-		Value:    Value,
-		Level:    -1,
-		Parents:  make(map[uint]bool),
-		Children: make(map[uint]bool),
-		Clause:   make(map[int]bool),
+		Var:     Var,
+		Value:   Value,
+		Level:   -1,
+		Parents: make(map[uint]bool),
+		// Children: make(map[uint]bool),
+		Clause: make(map[int]bool),
 	}
 }
 
 func NewImplicationNodeAll(Var uint, Value int, Level int, Parents, Children map[uint]bool, Clause map[int]bool) *ImplicationNode {
 	return &ImplicationNode{
-		Var:      Var,
-		Value:    Value,
-		Level:    Level,
-		Parents:  Parents,
-		Children: Children,
-		Clause:   Clause,
+		Var:     Var,
+		Value:   Value,
+		Level:   Level,
+		Parents: Parents,
+		// Children: Children,
+		Clause: Clause,
 	}
 }
 
@@ -45,7 +46,7 @@ func NewImplicationNodeAll(Var uint, Value int, Level int, Parents, Children map
 // }
 
 func (n *ImplicationNode) String() string {
-	retVal := fmt.Sprintf("Var: %d, Value: %d, Level: %d, Parents: %v, Children: %v, Clause: %v", n.Var, n.Value, n.Level, n.Parents, n.Children, n.Clause)
+	retVal := fmt.Sprintf("Var: %d, Value: %d, Level: %d, Parents: %v, Clause: %v", n.Var, n.Value, n.Level, n.Parents, n.Clause)
 	// retVal := fmt.Sprintf("Var: %d, Value: %d, Level: %d, Clause: %v", n.Var, n.Value, n.Level, n.Clause)
 	// if len(n.Parents) > 0 {
 	// 	retVal += fmt.Sprintln()

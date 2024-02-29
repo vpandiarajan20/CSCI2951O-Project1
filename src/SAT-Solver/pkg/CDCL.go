@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
 	"log"
@@ -56,8 +57,12 @@ func CDCL(f *SATInstance) (bool, error) {
 			}
 
 			// add learned clause to formula
-			fmt.Println("backtrcking to ", level)
+			fmt.Println("backtracking to ", level)
 			backtrack(f, level)
+			isLearnedUnitClause, _ := isUnitClause(f, learnedClause)
+			if !isLearnedUnitClause {
+				log.Panicln("backtracked too far / created a learned clause that is not going to be acted upon by unitProp")
+			}
 			// backtrack to level
 			f.Level = level
 		} else if allVariablesAssigned(f) {
@@ -204,9 +209,8 @@ func updateImplicationGraph(f *SATInstance, varToAssign uint, clause map[int]boo
 		// if clause is not nil, then it is an implication not a branched decision
 		for literal := range clause {
 			if abs(literal) != int(varToAssign) {
-				connection := f.ImplicationGraph[uint(abs(literal))]
 				impNode.Parents[uint(abs(literal))] = true // add connection to parents
-				connection.Children[impNode.Var] = true    // bidirection add to children
+				// connection.Children[impNode.Var] = true    // bidirection add to children
 			}
 		}
 		impNode.Clause = clause
@@ -220,184 +224,145 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 		// if conflict at level 0, then UNSAT
 		return -1, nil, nil
 	}
-	history := make([]uint, 1)
-	history[0] = f.BranchingHist[f.Level]
-	history = append(history, f.PropagateHist[f.Level]...)
+	// history := make([]uint, 1)
+	// history[0] = f.BranchingHist[f.Level]
+	// history = append(history, f.PropagateHist[f.Level]...)
+
+	// historyOld := make([]uint, len(history))
+	// copy(historyOld, history)
+
+	// slices.Reverse(history)
+
+	// ASSERTION: history is reversed
+	// for i, varCurr := range history {
+	// 	if varCurr != historyOld[len(historyOld)-i-1] {
+	// 		log.Panic("history not reversed correctly!")
+	// 	}
+	// }
+
 	// log.Println("History for level ", f.Level, history)
 
-	poolLiterals := conflictClause
-	finishedLiterals := make(map[int]bool)
-	currLevelLiterals := make(map[int]bool)
-	prevLevelLiterals := make(map[int]bool)
+	learntClause := make(map[int]bool)
+	maxLevel := 0
+	currVar := 0
 
-	fmt.Println("Analyzing this clause", conflictClause)
-	for {
-		fmt.Println("pool literals", poolLiterals)
-		for literal := range poolLiterals {
-			if f.ImplicationGraph[uint(abs(literal))].Level == f.Level {
-				currLevelLiterals[literal] = true
-				// if literal set at current branch, add to current level literals
-			} else {
-				prevLevelLiterals[literal] = true
-				// if literal was set at a previous branch, add to previous level literals
+	fmt.Println("Analyzing this clause", conflictClause, "at level:", f.Level)
+
+	// varsToProcess := conflictClause
+	varsToProcess := list.New()
+	for val := range conflictClause {
+		varsToProcess.PushBack(val)
+	}
+	varsProcessed := make(map[int]bool)
+
+	for varsToProcess.Len() > 1 {
+		fmt.Print("varQ:")
+		for e := varsToProcess.Front(); e != nil; e = e.Next() {
+			fmt.Print(e.Value, " ")
+		}
+		fmt.Println()
+
+		front := varsToProcess.Front()
+		currVar = front.Value.(int)
+
+		_, isVisited := varsProcessed[currVar]
+		if isVisited {
+			varsToProcess.Remove(front)
+			continue
+		}
+
+		varsProcessed[currVar] = true
+		varsToProcess.Remove(front)
+
+		_, isFoundP := conflictClause[currVar]
+		_, isFoundN := conflictClause[-currVar]
+
+		if isFoundP || isFoundN {
+			for parent := range f.ImplicationGraph[uint(currVar)].Parents {
+				fmt.Println("deciding on parent:", parent, "Level:", f.ImplicationGraph[parent].Level)
+				if f.ImplicationGraph[parent].Level == f.Level {
+					if f.ImplicationGraph[parent].Value == True {
+						varsToProcess.PushBack(int(parent))
+						fmt.Println("Adding to Queue", int(parent))
+					} else if f.ImplicationGraph[parent].Value == False {
+						varsToProcess.PushBack(-int(parent))
+						fmt.Println("Adding to Queue", -int(parent))
+					} else {
+						log.Panic("Parent is unassigned")
+					}
+				} else {
+					// if parent is not at current level, then it is at previous level
+					if f.ImplicationGraph[parent].Value == True {
+						fmt.Println("Adding to Learned Clause", -int(parent))
+						learntClause[-int(parent)] = true
+						// flip sign
+					} else if f.ImplicationGraph[parent].Value == False {
+						fmt.Println("Adding to Learned Clause", int(parent))
+						learntClause[int(parent)] = true
+						// flip sign
+					} else {
+						log.Panic("Parent is unassigned")
+					}
+					maxLevel = max(maxLevel, f.ImplicationGraph[parent].Level)
+				}
+				// be careful bc parents are always positive + varsToProcess isn't
 			}
 		}
-		// if len(currLevelLiterals) < 3 {
-		// fmt.Println("poolLiterals ", poolLiterals)
-		// fmt.Println("currLevelLiterals ", currLevelLiterals)
-		// fmt.Println("prevLevelLiterals ", prevLevelLiterals)
-		// }
-
-		// go back until unique implication points - have one more literal from the current decision level
-		// 1. have a conflict clause - that is initial unit clause
-		// 2. look at the decision stack - pop off elements - even the latest decision that caused the conflict
-		// 3. if not related to clause ignore it (unassign it); if decision (branch/implication) involves in clause,
-		// fetch all the literals that are parents of it --> of these, all the ones from previous decision levels go into clause
-		// all from previous decision level go into clasuse
-		// ones from current decision level added into queue -- only on the current queue left (might still have many from current decision level)
-		// when conflict then invert everything
-		// 4. when current set has only 1 literal, then you stop - then you have conflict clause
-		// all vars from prev decision levels
-
-		// ()
-		// while queue len > 1 {
-		// 	pop from deicion stack
-		// 	unassign unrelated to conflict
-		// 	related to conflict then fetch all parents and unassign -- just need immediate parents
-		// 	all parents from previous decision levels go into conflict cause, all parents from the current decision level go into queue
-		// }
-		// once do this, generate a new unit want to do this properly
-		// backtrack all the way to level 0 if learn a unit clause
-
-		// 1. first check if all stuff correct -> if step through this with debugger is useless -> have assertions that check that everything correct is dontconflictClause
-		// -> after conflict clause, everything except one variable is assigned and in conflict
-		// -> watched literals - after make changes then watched literals
-		// -> assertions catch bug
-		// 	-> if have time
-
-		// when backtrack, find the highest decision in the clause that is not from the current decision level
-		// then backtrack to that level
-		// the literal from current decision level becomes a unit - all other things are still assigned from clause
-		// every time create conflict clause, get a unit propagation immediately after
-
-		if len(currLevelLiterals) == 1 {
-			// this is uip
-
-			// goes up all the way uptil onely one
-			// fmt.Println("length 1 currLevelLiterals", currLevelLiterals)
-			// WHY IS THIS 1
-			// if one literal is at the current level, then we are done
-			break
-		}
-
-		lastAssigned, others, err := findLastAssigned(history, currLevelLiterals)
-		// fmt.Println("Last Assigned:", lastAssigned, "Others", others)
-		if err != nil {
-			return -1, nil, err
-		}
-		finishedLiterals[abs(lastAssigned)] = true // done processing this literal
-		currLevelLiterals = others                 // rest of the literals
-
-		poolClause := f.ImplicationGraph[uint(abs(lastAssigned))].Clause
-		poolLiterals = make(map[int]bool)
-
-		for literal := range poolClause {
-			if _, found := finishedLiterals[abs(literal)]; found {
-				continue
-			}
-
-			poolLiterals[literal] = true
-		}
-		// fmt.Println("Done Literals", finishedLiterals)
-
-	}
-	learnedClause := make(map[int]bool)
-	for literal := range currLevelLiterals {
-		learnedClause[literal] = true
-	}
-	for literal := range prevLevelLiterals {
-		learnedClause[literal] = true
 	}
 
-	level := 0
-	if len(prevLevelLiterals) != 0 {
-		// if there are literals in the previous level, then the level is the max of the previous level
-		for literal := range prevLevelLiterals {
-			currlitLevel := f.ImplicationGraph[uint(abs(literal))].Level
-			if currlitLevel > level {
-				level = currlitLevel
-			}
-		}
-	} else {
-		// if there are no literals in the previous level, then the level is one less than the current level
-		level = f.Level - 1
-	}
-	fmt.Println("Learned the following clause", learnedClause)
-	return level, learnedClause, nil
-}
+	front := varsToProcess.Front()
+	currVar = front.Value.(int)
+	varsToProcess.Remove(front)
 
-func findLastAssigned(history []uint, clause map[int]bool) (int, map[int]bool, error) {
-	v := 0
+	// adding last element from queue into learntClause
+	learntClause[-currVar] = true
 
-	sort.Slice(history, func(i, j int) bool { return history[i] > history[j] })
-	// reverses history
-	for _, varCurr := range history {
-		// iterate backwards through history to find last assigned var in clause
-		others := make(map[int]bool) // others in clause
-
-		for literal := range clause {
-			if uint(abs(literal)) == varCurr {
-				v = literal
-				continue
-			}
-			others[literal] = true
-		}
-		if v != 0 {
-			return v, others, nil
-		}
-	}
-	return 0, nil, errors.New(fmt.Sprint("no last assigned var found, looking in clause ", clause))
+	// TODO: optimization, but could be commented out for now
+	// if len(learntClause) == 1 {
+	// 	return 0, learntClause, nil
+	// }
+	return maxLevel, learntClause, nil
 }
 
 func backtrack(f *SATInstance, level int) {
+
+	for i := f.Level; i > level; i-- {
+		for _, currVar := range f.PropagateHist[i] {
+			node := f.ImplicationGraph[currVar]
+			if node.Value != Unassigned && node.Value != f.Vars[currVar] {
+				log.Panic("in stack (propagate hist) backtracking and unassigning something that was never assigned")
+			}
+			node.Value = Unassigned
+			node.Level = -1
+			node.Parents = make(map[uint]bool)
+			node.Clause = make(map[int]bool)
+			f.ImplicationGraph[currVar] = node
+			f.Vars[currVar] = Unassigned
+		}
+		currVar := f.BranchingHist[i]
+		node := f.ImplicationGraph[currVar]
+		if node.Value != Unassigned && node.Value != f.Vars[currVar] {
+			log.Panic("in stack (branching hist) backtracking and unassigning something that was never assigned")
+		}
+		node.Value = Unassigned
+		node.Level = -1
+		node.Parents = make(map[uint]bool)
+		node.Clause = make(map[int]bool)
+		f.ImplicationGraph[currVar] = node
+		f.Vars[currVar] = Unassigned
+	}
+
 	for currVar, node := range f.ImplicationGraph {
 		if node.Level > level {
 			node.Value = Unassigned
 			node.Level = -1
 			node.Parents = make(map[uint]bool)
-			node.Children = make(map[uint]bool)
+			// node.Children = make(map[uint]bool)
 			node.Clause = make(map[int]bool)
 			f.ImplicationGraph[currVar] = node
 			f.Vars[currVar] = Unassigned
 		} else {
-
-			nodeNewChildren := make(map[uint]bool)
-			for child := range node.Children {
-				if f.ImplicationGraph[child].Level > level {
-					continue
-				}
-				nodeNewChildren[child] = true
-			}
-			node.Children = nodeNewChildren
 			f.ImplicationGraph[currVar] = node
-		}
-	}
-
-	remainingBranchingVars := make(map[uint]bool)
-	for currVar, assignment := range f.Vars {
-		if assignment != Unassigned && len(f.ImplicationGraph[currVar].Parents) == 0 {
-			remainingBranchingVars[currVar] = true
-		}
-	}
-	f.BranchingVars = remainingBranchingVars
-	levelsHist := make([]int, 0)
-	for propLevel := range f.PropagateHist {
-		levelsHist = append(levelsHist, propLevel)
-	}
-	for _, levelCurr := range levelsHist {
-		if levelCurr > level {
-			delete(f.PropagateHist, levelCurr)
-			delete(f.BranchingHist, levelCurr)
 		}
 	}
 }

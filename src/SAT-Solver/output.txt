@@ -131,30 +131,30 @@ initial equations [Number of variables: 26
  Clause 127: [-23 24 25]
  Clause 128: [-6 9 18]
  VarCount:
-   Variable 11: PosCount=0, NegCount=0
-   Variable 19: PosCount=0, NegCount=0
-   Variable 13: PosCount=0, NegCount=0
-   Variable 24: PosCount=0, NegCount=0
-   Variable 9: PosCount=0, NegCount=0
-   Variable 10: PosCount=0, NegCount=0
-   Variable 17: PosCount=0, NegCount=0
-   Variable 22: PosCount=0, NegCount=0
-   Variable 2: PosCount=0, NegCount=0
-   Variable 14: PosCount=0, NegCount=0
-   Variable 18: PosCount=0, NegCount=0
-   Variable 15: PosCount=0, NegCount=0
-   Variable 5: PosCount=0, NegCount=0
-   Variable 8: PosCount=0, NegCount=0
-   Variable 25: PosCount=0, NegCount=0
-   Variable 12: PosCount=0, NegCount=0
-   Variable 7: PosCount=0, NegCount=0
-   Variable 3: PosCount=0, NegCount=0
    Variable 1: PosCount=0, NegCount=0
    Variable 21: PosCount=0, NegCount=0
-   Variable 23: PosCount=0, NegCount=0
    Variable 26: PosCount=0, NegCount=0
-   Variable 4: PosCount=0, NegCount=0
+   Variable 17: PosCount=0, NegCount=0
+   Variable 19: PosCount=0, NegCount=0
+   Variable 14: PosCount=0, NegCount=0
+   Variable 18: PosCount=0, NegCount=0
+   Variable 24: PosCount=0, NegCount=0
+   Variable 5: PosCount=0, NegCount=0
+   Variable 9: PosCount=0, NegCount=0
+   Variable 25: PosCount=0, NegCount=0
+   Variable 12: PosCount=0, NegCount=0
+   Variable 11: PosCount=0, NegCount=0
+   Variable 13: PosCount=0, NegCount=0
    Variable 16: PosCount=0, NegCount=0
+   Variable 7: PosCount=0, NegCount=0
+   Variable 3: PosCount=0, NegCount=0
+   Variable 2: PosCount=0, NegCount=0
+   Variable 23: PosCount=0, NegCount=0
+   Variable 4: PosCount=0, NegCount=0
+   Variable 15: PosCount=0, NegCount=0
+   Variable 10: PosCount=0, NegCount=0
+   Variable 8: PosCount=0, NegCount=0
+   Variable 22: PosCount=0, NegCount=0
    Variable 6: PosCount=0, NegCount=0
    Variable 20: PosCount=0, NegCount=0
 ]
@@ -168,246 +168,130 @@ Branch, Var: 3 Assigned false
 Branch, Var: 4 Assigned false
 --------------------------------------------Decision Level 5--------------------- 
 Branch, Var: 5 Assigned false
-2024/02/29 16:18:51 Learned Clauses []
-2024/02/29 16:18:51 Conflict Clause map[-14:true 1:true 26:true]
-2024/02/29 16:18:51 Implication Graph
-Var: 23, Value: 2, Level: 5, Parents: map[13:true 18:true], Children: map[], Clause: map[-23:true -18:true -13:true]
-Var: 26, Value: 2, Level: 5, Parents: map[13:true 24:true], Children: map[14:true 20:true], Clause: map[-26:true -13:true 24:true]
-Var: 16, Value: 1, Level: 5, Parents: map[10:true 12:true], Children: map[], Clause: map[-12:true 10:true 16:true]
-Var: 15, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 25, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 2, Value: 2, Level: 2, Parents: map[], Children: map[8:true 9:true 24:true], Clause: map[]
-Var: 1, Value: 2, Level: 1, Parents: map[], Children: map[8:true 14:true 24:true], Clause: map[]
-Var: 13, Value: 1, Level: 5, Parents: map[5:true], Children: map[18:true 23:true 26:true], Clause: map[5:true 13:true]
-Var: 9, Value: 2, Level: 5, Parents: map[2:true 5:true], Children: map[10:true], Clause: map[-9:true 2:true 5:true]
-Var: 14, Value: 1, Level: 5, Parents: map[1:true 10:true 11:true 26:true], Children: map[], Clause: map[10:true 11:true 14:true]
-Var: 12, Value: 1, Level: 5, Parents: map[5:true 24:true], Children: map[16:true], Clause: map[5:true 12:true 24:true]
-Var: 17, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 21, Value: 2, Level: 5, Parents: map[5:true 8:true], Children: map[10:true 20:true 22:true], Clause: map[-21:true -8:true 5:true]
-Var: 4, Value: 2, Level: 4, Parents: map[], Children: map[10:true 18:true], Clause: map[]
-Var: 24, Value: 2, Level: 2, Parents: map[1:true 2:true], Children: map[12:true 26:true], Clause: map[-24:true 1:true 2:true]
-Var: 5, Value: 2, Level: 5, Parents: map[], Children: map[9:true 10:true 11:true 12:true 13:true 21:true], Clause: map[]
-Var: 10, Value: 2, Level: 5, Parents: map[4:true 5:true 9:true 21:true], Children: map[14:true 16:true], Clause: map[-10:true 4:true 21:true]
-Var: 3, Value: 2, Level: 3, Parents: map[], Children: map[22:true], Clause: map[]
-Var: 19, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 20, Value: 1, Level: 5, Parents: map[21:true 26:true], Children: map[], Clause: map[20:true 21:true 26:true]
-Var: 18, Value: 1, Level: 5, Parents: map[4:true 13:true], Children: map[23:true], Clause: map[-13:true 4:true 18:true]
-Var: 7, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 8, Value: 1, Level: 2, Parents: map[1:true 2:true], Children: map[11:true 21:true], Clause: map[1:true 2:true 8:true]
-Var: 22, Value: 2, Level: 5, Parents: map[3:true 21:true], Children: map[], Clause: map[-22:true 3:true 21:true]
-Var: 11, Value: 2, Level: 5, Parents: map[5:true 8:true], Children: map[14:true], Clause: map[-11:true -8:true 5:true]
-Var: 6, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Analyzing this clause map[-14:true 1:true 26:true]
-pool literals map[-14:true 1:true 26:true]
-pool literals map[-13:true 24:true]
-pool literals map[10:true 11:true]
-pool literals map[5:true]
-pool literals map[-8:true 5:true]
-pool literals map[4:true 21:true]
-pool literals map[-8:true 5:true]
-Learned the following clause map[-8:true 1:true 4:true 5:true 24:true]
-backtrcking to  4
-2024/02/29 16:18:51 Learned Clauses [map[-8:true 1:true 4:true 5:true 24:true]]
-2024/02/29 16:18:51 Conflict Clause map[10:true 11:true 14:true]
-2024/02/29 16:18:51 Implication Graph
-Var: 5, Value: 1, Level: 4, Parents: map[1:true 4:true 8:true 24:true], Children: map[7:true 16:true 19:true 22:true 23:true], Clause: map[-8:true 1:true 4:true 5:true 24:true]
-Var: 10, Value: 2, Level: 4, Parents: map[7:true 8:true], Children: map[], Clause: map[-10:true -8:true -7:true]
-Var: 3, Value: 2, Level: 3, Parents: map[], Children: map[], Clause: map[]
-Var: 12, Value: 1, Level: 4, Parents: map[18:true], Children: map[6:true], Clause: map[-18:true 12:true]
-Var: 17, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 21, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 4, Value: 2, Level: 4, Parents: map[], Children: map[5:true 25:true], Clause: map[]
-Var: 24, Value: 2, Level: 2, Parents: map[1:true 2:true], Children: map[5:true 12:true 26:true], Clause: map[-24:true 1:true 2:true]
-Var: 19, Value: 2, Level: 4, Parents: map[5:true 9:true], Children: map[13:true 18:true], Clause: map[-19:true -5:true 9:true]
-Var: 22, Value: 2, Level: 4, Parents: map[2:true 5:true], Children: map[18:true 23:true], Clause: map[-22:true -5:true 2:true]
-Var: 11, Value: 2, Level: 4, Parents: map[1:true 6:true], Children: map[], Clause: map[-11:true -6:true 1:true]
-Var: 6, Value: 1, Level: 4, Parents: map[12:true 16:true], Children: map[11:true 14:true 25:true], Clause: map[-16:true -12:true 6:true]
-Var: 20, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 18, Value: 1, Level: 4, Parents: map[19:true 22:true], Children: map[12:true 13:true 14:true], Clause: map[18:true 19:true 22:true]
-Var: 7, Value: 1, Level: 4, Parents: map[1:true 5:true], Children: map[9:true 10:true], Clause: map[-5:true 1:true 7:true]
-Var: 8, Value: 1, Level: 2, Parents: map[1:true 2:true], Children: map[5:true 10:true 21:true], Clause: map[1:true 2:true 8:true]
-Var: 15, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 25, Value: 2, Level: 4, Parents: map[4:true 6:true], Children: map[], Clause: map[-25:true -6:true 4:true]
-Var: 2, Value: 2, Level: 2, Parents: map[], Children: map[8:true 22:true 24:true], Clause: map[]
-Var: 23, Value: 2, Level: 4, Parents: map[5:true 22:true], Children: map[], Clause: map[-23:true -5:true 22:true]
-Var: 26, Value: 2, Level: 4, Parents: map[13:true 24:true], Children: map[14:true], Clause: map[-26:true -13:true 24:true]
-Var: 16, Value: 1, Level: 4, Parents: map[5:true], Children: map[6:true], Clause: map[-5:true 16:true]
-Var: 14, Value: 2, Level: 4, Parents: map[1:true 6:true 18:true 26:true], Children: map[], Clause: map[-14:true 1:true 26:true]
-Var: 1, Value: 2, Level: 1, Parents: map[], Children: map[5:true 7:true 8:true 9:true 11:true 14:true 24:true], Clause: map[]
-Var: 13, Value: 1, Level: 4, Parents: map[18:true 19:true], Children: map[26:true], Clause: map[-18:true 13:true 19:true]
-Var: 9, Value: 2, Level: 4, Parents: map[1:true 7:true], Children: map[19:true], Clause: map[-9:true -7:true 1:true]
-Analyzing this clause map[10:true 11:true 14:true]
-pool literals map[10:true 11:true 14:true]
-pool literals map[1:true 26:true]
-pool literals map[-13:true 24:true]
-pool literals map[-18:true 19:true]
-pool literals map[-5:true 9:true]
-pool literals map[22:true]
-pool literals map[-5:true 2:true]
-pool literals map[-6:true 1:true]
-pool literals map[-8:true -7:true]
-pool literals map[-7:true 1:true]
-pool literals map[-5:true 1:true]
-pool literals map[-16:true -12:true]
-pool literals map[-5:true]
-pool literals map[]
-Learned the following clause map[-8:true -5:true 1:true 2:true 24:true]
-backtrcking to  2
-2024/02/29 16:18:51 Learned Clauses [map[-8:true 1:true 4:true 5:true 24:true] map[-8:true -5:true 1:true 2:true 24:true]]
-2024/02/29 16:18:51 Conflict Clause map[-4:true 5:true 9:true]
-2024/02/29 16:18:51 Implication Graph
-Var: 2, Value: 2, Level: 2, Parents: map[], Children: map[5:true 8:true 9:true 24:true], Clause: map[]
-Var: 23, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 26, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 16, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 15, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 25, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 1, Value: 2, Level: 1, Parents: map[], Children: map[3:true 4:true 5:true 8:true 24:true], Clause: map[]
-Var: 13, Value: 1, Level: 2, Parents: map[5:true], Children: map[], Clause: map[5:true 13:true]
-Var: 9, Value: 2, Level: 2, Parents: map[2:true 5:true], Children: map[], Clause: map[-9:true 2:true 5:true]
-Var: 14, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 3, Value: 2, Level: 2, Parents: map[1:true 5:true], Children: map[], Clause: map[-3:true 1:true 5:true]
-Var: 12, Value: 1, Level: 2, Parents: map[5:true 24:true], Children: map[], Clause: map[5:true 12:true 24:true]
-Var: 17, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 21, Value: 2, Level: 2, Parents: map[5:true 8:true], Children: map[], Clause: map[-21:true -8:true 5:true]
-Var: 4, Value: 1, Level: 2, Parents: map[1:true 5:true 8:true 24:true], Children: map[], Clause: map[-8:true 1:true 4:true 5:true 24:true]
-Var: 24, Value: 2, Level: 2, Parents: map[1:true 2:true], Children: map[4:true 5:true 12:true 26:true], Clause: map[-24:true 1:true 2:true]
-Var: 5, Value: 2, Level: 2, Parents: map[1:true 2:true 8:true 24:true], Children: map[3:true 4:true 9:true 11:true 12:true 13:true 21:true], Clause: map[-8:true -5:true 1:true 2:true 24:true]
-Var: 10, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 19, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 6, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 20, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 18, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 7, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 8, Value: 1, Level: 2, Parents: map[1:true 2:true], Children: map[4:true 5:true 10:true 11:true 21:true], Clause: map[1:true 2:true 8:true]
-Var: 22, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 11, Value: 2, Level: 2, Parents: map[5:true 8:true], Children: map[], Clause: map[-11:true -8:true 5:true]
-Analyzing this clause map[-4:true 5:true 9:true]
-pool literals map[-4:true 5:true 9:true]
-pool literals map[2:true 5:true]
-pool literals map[-8:true 1:true 2:true 24:true]
-pool literals map[1:true 2:true]
-pool literals map[1:true 2:true]
-pool literals map[1:true]
-Learned the following clause map[1:true 2:true]
-backtrcking to  1
+2024/02/29 18:29:18 Learned Clauses []
+2024/02/29 18:29:18 Conflict Clause map[-14:true 1:true 26:true]
+2024/02/29 18:29:18 Implication Graph
+Var: 9, Value: 2, Level: 5, Parents: map[2:true 5:true], Clause: map[-9:true 2:true 5:true]
+Var: 17, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 2, Value: 2, Level: 2, Parents: map[], Clause: map[]
+Var: 23, Value: 2, Level: 5, Parents: map[13:true 18:true], Clause: map[-23:true -18:true -13:true]
+Var: 26, Value: 2, Level: 5, Parents: map[13:true 24:true], Clause: map[-26:true -13:true 24:true]
+Var: 5, Value: 2, Level: 5, Parents: map[], Clause: map[]
+Var: 12, Value: 1, Level: 5, Parents: map[5:true 24:true], Clause: map[5:true 12:true 24:true]
+Var: 19, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 14, Value: 1, Level: 5, Parents: map[1:true 10:true 11:true 26:true], Clause: map[10:true 11:true 14:true]
+Var: 1, Value: 2, Level: 1, Parents: map[], Clause: map[]
+Var: 18, Value: 1, Level: 5, Parents: map[4:true 13:true], Clause: map[-13:true 4:true 18:true]
+Var: 15, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 10, Value: 2, Level: 5, Parents: map[4:true 5:true 9:true 21:true], Clause: map[-10:true 4:true 21:true]
+Var: 25, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 3, Value: 2, Level: 3, Parents: map[], Clause: map[]
+Var: 22, Value: 2, Level: 5, Parents: map[3:true 21:true], Clause: map[-22:true 3:true 21:true]
+Var: 11, Value: 2, Level: 5, Parents: map[5:true 8:true], Clause: map[-11:true -8:true 5:true]
+Var: 21, Value: 2, Level: 5, Parents: map[5:true 8:true], Clause: map[-21:true -8:true 5:true]
+Var: 24, Value: 2, Level: 2, Parents: map[1:true 2:true], Clause: map[-24:true 1:true 2:true]
+Var: 16, Value: 1, Level: 5, Parents: map[10:true 12:true], Clause: map[-12:true 10:true 16:true]
+Var: 8, Value: 1, Level: 2, Parents: map[1:true 2:true], Clause: map[1:true 2:true 8:true]
+Var: 6, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 20, Value: 1, Level: 5, Parents: map[21:true 26:true], Clause: map[20:true 21:true 26:true]
+Var: 13, Value: 1, Level: 5, Parents: map[5:true], Clause: map[5:true 13:true]
+Var: 4, Value: 2, Level: 4, Parents: map[], Clause: map[]
+Var: 7, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Analyzing this clause map[-14:true 1:true 26:true] at level: 5
+varQ-14 1 26 
+varQ1 26 
+backtracking to  0
+--------------------------------------------Decision Level 1--------------------- 
+Branch, Var: 1 Assigned false
 --------------------------------------------Decision Level 2--------------------- 
+Branch, Var: 2 Assigned false
+--------------------------------------------Decision Level 3--------------------- 
 Branch, Var: 3 Assigned false
---------------------------------------------Decision Level 3--------------------- 
-Branch, Var: 4 Assigned true
-2024/02/29 16:18:51 Learned Clauses [map[-8:true 1:true 4:true 5:true 24:true] map[-8:true -5:true 1:true 2:true 24:true] map[1:true 2:true]]
-2024/02/29 16:18:51 Conflict Clause map[-16:true 13:true 18:true]
-2024/02/29 16:18:51 Implication Graph
-Var: 23, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 26, Value: 1, Level: 3, Parents: map[2:true 4:true 20:true 24:true], Children: map[13:true 18:true 19:true], Clause: map[-4:true 20:true 26:true]
-Var: 16, Value: 1, Level: 2, Parents: map[2:true 24:true], Children: map[21:true], Clause: map[-2:true 16:true 24:true]
-Var: 15, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 25, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 2, Value: 1, Level: 1, Parents: map[1:true], Children: map[16:true 19:true 20:true 26:true], Clause: map[1:true 2:true]
-Var: 1, Value: 2, Level: 1, Parents: map[], Children: map[2:true 8:true 24:true], Clause: map[]
-Var: 13, Value: 2, Level: 3, Parents: map[24:true 26:true], Children: map[], Clause: map[-26:true -13:true 24:true]
-Var: 9, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 14, Value: 1, Level: 3, Parents: map[22:true], Children: map[], Clause: map[-22:true 14:true]
-Var: 17, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 21, Value: 1, Level: 2, Parents: map[16:true 20:true], Children: map[], Clause: map[-16:true 20:true 21:true]
-Var: 4, Value: 1, Level: 3, Parents: map[], Children: map[22:true 26:true], Clause: map[]
-Var: 24, Value: 2, Level: 2, Parents: map[1:true 3:true], Children: map[13:true 16:true 26:true], Clause: map[-24:true 1:true 3:true]
-Var: 5, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 10, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 3, Value: 2, Level: 2, Parents: map[], Children: map[20:true 24:true], Clause: map[]
-Var: 12, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 19, Value: 2, Level: 3, Parents: map[2:true 26:true], Children: map[], Clause: map[-26:true -19:true -2:true]
-Var: 18, Value: 2, Level: 3, Parents: map[20:true 26:true], Children: map[], Clause: map[-26:true -18:true 20:true]
-Var: 7, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 8, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 22, Value: 1, Level: 3, Parents: map[4:true 20:true], Children: map[14:true], Clause: map[-4:true 20:true 22:true]
-Var: 11, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 6, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 20, Value: 2, Level: 2, Parents: map[2:true 3:true], Children: map[18:true 21:true 22:true 26:true], Clause: map[-20:true -2:true 3:true]
-Analyzing this clause map[-16:true 13:true 18:true]
-pool literals map[-16:true 13:true 18:true]
-pool literals map[-26:true 20:true]
-pool literals map[-4:true 20:true]
-pool literals map[24:true]
-Learned the following clause map[-16:true -4:true 20:true 24:true]
-backtrcking to  2
---------------------------------------------Decision Level 3--------------------- 
-Branch, Var: 8 Assigned false
 --------------------------------------------Decision Level 4--------------------- 
 Branch, Var: 5 Assigned false
-2024/02/29 16:18:51 Learned Clauses [map[-8:true 1:true 4:true 5:true 24:true] map[-8:true -5:true 1:true 2:true 24:true] map[1:true 2:true] map[-16:true -4:true 20:true 24:true]]
-2024/02/29 16:18:51 Conflict Clause map[-23:true -18:true -13:true]
-2024/02/29 16:18:51 Implication Graph
-Var: 12, Value: 1, Level: 4, Parents: map[5:true 24:true], Children: map[6:true 23:true], Clause: map[5:true 12:true 24:true]
-Var: 17, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 21, Value: 1, Level: 2, Parents: map[16:true 20:true], Children: map[7:true], Clause: map[-16:true 20:true 21:true]
-Var: 4, Value: 2, Level: 2, Parents: map[16:true 20:true 24:true], Children: map[18:true], Clause: map[-16:true -4:true 20:true 24:true]
-Var: 24, Value: 2, Level: 2, Parents: map[1:true 3:true], Children: map[4:true 12:true 13:true 16:true 26:true], Clause: map[-24:true 1:true 3:true]
-Var: 5, Value: 2, Level: 4, Parents: map[], Children: map[7:true 12:true 13:true], Clause: map[]
-Var: 10, Value: 2, Level: 4, Parents: map[7:true 13:true], Children: map[], Clause: map[-13:true -10:true 7:true]
-Var: 3, Value: 2, Level: 2, Parents: map[], Children: map[20:true 24:true], Clause: map[]
-Var: 19, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 20, Value: 2, Level: 2, Parents: map[2:true 3:true], Children: map[4:true 21:true 22:true], Clause: map[-20:true -2:true 3:true]
-Var: 18, Value: 1, Level: 4, Parents: map[4:true 7:true 13:true], Children: map[], Clause: map[-13:true 7:true 18:true]
-Var: 7, Value: 2, Level: 4, Parents: map[5:true 21:true], Children: map[10:true 18:true 23:true], Clause: map[-21:true -7:true 5:true]
-Var: 8, Value: 2, Level: 3, Parents: map[], Children: map[], Clause: map[]
-Var: 22, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 11, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 6, Value: 1, Level: 4, Parents: map[12:true 16:true], Children: map[], Clause: map[-16:true -12:true 6:true]
-Var: 23, Value: 1, Level: 4, Parents: map[7:true 12:true], Children: map[], Clause: map[-12:true 7:true 23:true]
-Var: 26, Value: 2, Level: 4, Parents: map[13:true 24:true], Children: map[], Clause: map[-26:true -13:true 24:true]
-Var: 16, Value: 1, Level: 2, Parents: map[2:true 24:true], Children: map[4:true 6:true 21:true], Clause: map[-2:true 16:true 24:true]
-Var: 15, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 25, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 2, Value: 1, Level: 1, Parents: map[1:true], Children: map[16:true 20:true], Clause: map[1:true 2:true]
-Var: 1, Value: 2, Level: 1, Parents: map[], Children: map[2:true 8:true 24:true], Clause: map[]
-Var: 13, Value: 1, Level: 4, Parents: map[5:true], Children: map[10:true 18:true 26:true], Clause: map[5:true 13:true]
-Var: 9, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 14, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Analyzing this clause map[-23:true -18:true -13:true]
-pool literals map[-23:true -18:true -13:true]
-pool literals map[-12:true 7:true]
-pool literals map[-13:true 7:true]
-pool literals map[5:true]
-pool literals map[5:true 24:true]
-pool literals map[-21:true 5:true]
-Learned the following clause map[-21:true 5:true 24:true]
-backtrcking to  2
+2024/02/29 18:29:18 Learned Clauses [map[-26:true]]
+2024/02/29 18:29:18 Conflict Clause map[-10:true -8:true -7:true]
+2024/02/29 18:29:18 Implication Graph
+Var: 1, Value: 2, Level: 1, Parents: map[], Clause: map[]
+Var: 18, Value: 1, Level: 4, Parents: map[4:true 13:true], Clause: map[-13:true 4:true 18:true]
+Var: 15, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 12, Value: 1, Level: 4, Parents: map[5:true 24:true], Clause: map[5:true 12:true 24:true]
+Var: 19, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 14, Value: 2, Level: 1, Parents: map[1:true 26:true], Clause: map[-14:true 1:true 26:true]
+Var: 21, Value: 2, Level: 4, Parents: map[5:true 8:true], Clause: map[-21:true -8:true 5:true]
+Var: 24, Value: 2, Level: 2, Parents: map[1:true 2:true], Clause: map[-24:true 1:true 2:true]
+Var: 16, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 10, Value: 1, Level: 4, Parents: map[4:true 5:true 9:true 11:true 14:true 21:true], Clause: map[10:true 11:true 14:true]
+Var: 25, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 3, Value: 2, Level: 3, Parents: map[], Clause: map[]
+Var: 22, Value: 2, Level: 1, Parents: map[14:true], Clause: map[-22:true 14:true]
+Var: 11, Value: 2, Level: 4, Parents: map[5:true 8:true], Clause: map[-11:true -8:true 5:true]
+Var: 13, Value: 1, Level: 4, Parents: map[5:true], Clause: map[5:true 13:true]
+Var: 4, Value: 2, Level: 2, Parents: map[24:true 26:true], Clause: map[-4:true 24:true 26:true]
+Var: 7, Value: 1, Level: 4, Parents: map[12:true 23:true], Clause: map[-12:true 7:true 23:true]
+Var: 8, Value: 1, Level: 2, Parents: map[1:true 2:true], Clause: map[1:true 2:true 8:true]
+Var: 6, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 20, Value: 1, Level: 4, Parents: map[21:true 26:true], Clause: map[20:true 21:true 26:true]
+Var: 23, Value: 2, Level: 1, Parents: map[14:true 26:true], Clause: map[-23:true 14:true 26:true]
+Var: 26, Value: 2, Level: 0, Parents: map[], Clause: map[-26:true]
+Var: 5, Value: 2, Level: 4, Parents: map[], Clause: map[]
+Var: 9, Value: 2, Level: 4, Parents: map[2:true 5:true], Clause: map[-9:true 2:true 5:true]
+Var: 17, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 2, Value: 2, Level: 2, Parents: map[], Clause: map[]
+Analyzing this clause map[-10:true -8:true -7:true] at level: 4
+varQ-10 -7 -8 
+varQ-7 -8 
+backtracking to  0
+--------------------------------------------Decision Level 1--------------------- 
+Branch, Var: 1 Assigned false
+--------------------------------------------Decision Level 2--------------------- 
+Branch, Var: 2 Assigned false
 --------------------------------------------Decision Level 3--------------------- 
-Branch, Var: 6 Assigned false
-2024/02/29 16:18:51 Learned Clauses [map[-8:true 1:true 4:true 5:true 24:true] map[-8:true -5:true 1:true 2:true 24:true] map[1:true 2:true] map[-16:true -4:true 20:true 24:true] map[-21:true 5:true 24:true]]
-2024/02/29 16:18:51 Conflict Clause map[-13:true 4:true 18:true]
-2024/02/29 16:18:51 Implication Graph
-Var: 13, Value: 1, Level: 3, Parents: map[4:true 16:true 18:true], Children: map[], Clause: map[-16:true 13:true 18:true]
-Var: 9, Value: 2, Level: 2, Parents: map[1:true 7:true], Children: map[19:true], Clause: map[-9:true -7:true 1:true]
-Var: 14, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 1, Value: 2, Level: 1, Parents: map[], Children: map[2:true 7:true 9:true 24:true], Clause: map[]
-Var: 4, Value: 2, Level: 2, Parents: map[16:true 20:true 24:true], Children: map[13:true], Clause: map[-16:true -4:true 20:true 24:true]
-Var: 24, Value: 2, Level: 2, Parents: map[1:true 3:true], Children: map[4:true 5:true 12:true 13:true 16:true], Clause: map[-24:true 1:true 3:true]
-Var: 5, Value: 1, Level: 2, Parents: map[21:true 24:true], Children: map[7:true 19:true], Clause: map[-21:true 5:true 24:true]
-Var: 10, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 3, Value: 2, Level: 2, Parents: map[], Children: map[20:true 24:true], Clause: map[]
-Var: 12, Value: 2, Level: 3, Parents: map[6:true 16:true], Children: map[18:true], Clause: map[-16:true -12:true 6:true]
-Var: 17, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 21, Value: 1, Level: 2, Parents: map[16:true 20:true], Children: map[5:true], Clause: map[-16:true 20:true 21:true]
-Var: 19, Value: 2, Level: 2, Parents: map[5:true 9:true], Children: map[22:true 23:true 25:true], Clause: map[-19:true -5:true 9:true]
-Var: 7, Value: 1, Level: 2, Parents: map[1:true 5:true], Children: map[9:true], Clause: map[-5:true 1:true 7:true]
-Var: 8, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 22, Value: 1, Level: 3, Parents: map[18:true 19:true], Children: map[], Clause: map[18:true 19:true 22:true]
-Var: 11, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 6, Value: 2, Level: 3, Parents: map[], Children: map[12:true 23:true], Clause: map[]
-Var: 20, Value: 2, Level: 2, Parents: map[2:true 3:true], Children: map[4:true 21:true 22:true], Clause: map[-20:true -2:true 3:true]
-Var: 18, Value: 2, Level: 3, Parents: map[12:true], Children: map[13:true 22:true 25:true], Clause: map[-18:true 12:true]
-Var: 26, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 16, Value: 1, Level: 2, Parents: map[2:true 24:true], Children: map[4:true 6:true 12:true 13:true 21:true], Clause: map[-2:true 16:true 24:true]
-Var: 15, Value: 0, Level: -1, Parents: map[], Children: map[], Clause: map[]
-Var: 25, Value: 1, Level: 3, Parents: map[18:true 19:true], Children: map[], Clause: map[18:true 19:true 25:true]
-Var: 2, Value: 1, Level: 1, Parents: map[1:true], Children: map[16:true 20:true], Clause: map[1:true 2:true]
-Var: 23, Value: 2, Level: 3, Parents: map[6:true 19:true], Children: map[], Clause: map[-23:true 6:true 19:true]
-Analyzing this clause map[-13:true 4:true 18:true]
-pool literals map[-13:true 4:true 18:true]
-pool literals map[12:true]
-pool literals map[-16:true]
-Learned the following clause map[-16:true 4:true 12:true]
-backtrcking to  2
-{"Instance": "toy_solvable.cnf", "Time": 0.00, "Result": "SAT", "Solution": "1 false 2 true 3 false 4 false 5 true 6 true 7 true 8 false 9 false 10 true 11 false 12 true 13 true 14 false 15 true 16 true 17 true 18 true 19 false 20 false 21 true 22 false 23 false 24 false 25 false 26 false"}
+Branch, Var: 3 Assigned false
+--------------------------------------------Decision Level 4--------------------- 
+Branch, Var: 5 Assigned false
+2024/02/29 18:29:18 Learned Clauses [map[-26:true] map[8:true]]
+2024/02/29 18:29:18 Conflict Clause map[-10:true -8:true -7:true]
+2024/02/29 18:29:18 Implication Graph
+Var: 18, Value: 1, Level: 4, Parents: map[4:true 13:true], Clause: map[-13:true 4:true 18:true]
+Var: 15, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 12, Value: 1, Level: 4, Parents: map[5:true 24:true], Clause: map[5:true 12:true 24:true]
+Var: 19, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 14, Value: 2, Level: 1, Parents: map[1:true 26:true], Clause: map[-14:true 1:true 26:true]
+Var: 1, Value: 2, Level: 1, Parents: map[], Clause: map[]
+Var: 24, Value: 2, Level: 2, Parents: map[1:true 2:true], Clause: map[-24:true 1:true 2:true]
+Var: 16, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 10, Value: 1, Level: 4, Parents: map[4:true 5:true 9:true 11:true 14:true 21:true], Clause: map[10:true 11:true 14:true]
+Var: 25, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 3, Value: 2, Level: 3, Parents: map[], Clause: map[]
+Var: 22, Value: 2, Level: 1, Parents: map[14:true], Clause: map[-22:true 14:true]
+Var: 11, Value: 2, Level: 4, Parents: map[5:true 8:true], Clause: map[-11:true -8:true 5:true]
+Var: 21, Value: 2, Level: 4, Parents: map[5:true 8:true], Clause: map[-21:true -8:true 5:true]
+Var: 4, Value: 2, Level: 2, Parents: map[24:true 26:true], Clause: map[-4:true 24:true 26:true]
+Var: 7, Value: 1, Level: 4, Parents: map[12:true 23:true], Clause: map[-12:true 7:true 23:true]
+Var: 8, Value: 1, Level: 0, Parents: map[], Clause: map[8:true]
+Var: 6, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 20, Value: 1, Level: 4, Parents: map[21:true 26:true], Clause: map[20:true 21:true 26:true]
+Var: 13, Value: 1, Level: 4, Parents: map[5:true], Clause: map[5:true 13:true]
+Var: 26, Value: 2, Level: 0, Parents: map[], Clause: map[-26:true]
+Var: 5, Value: 2, Level: 4, Parents: map[], Clause: map[]
+Var: 9, Value: 2, Level: 4, Parents: map[2:true 5:true], Clause: map[-9:true 2:true 5:true]
+Var: 17, Value: 0, Level: -1, Parents: map[], Clause: map[]
+Var: 2, Value: 2, Level: 2, Parents: map[], Clause: map[]
+Var: 23, Value: 2, Level: 1, Parents: map[14:true 26:true], Clause: map[-23:true 14:true 26:true]
+Analyzing this clause map[-10:true -8:true -7:true] at level: 4
+varQ-10 -7 -8 
+varQ-7 -8 
+backtracking to  0
+2024/02/29 18:29:18 backtracked too far / created a learned clause that is not going to be acted upon by unitProp
+panic: backtracked too far / created a learned clause that is not going to be acted upon by unitProp
+
+
+goroutine 1 [running]:
+log.Panicln(0xc0000b1cc0, 0x1, 0x1)
+	/usr/local/go/src/log/log.go:368 +0xae
+SAT-Solver/pkg.CDCL(0xc00012a000, 0xdba54, 0x1187880, 0x2)
+	/Users/suraj/Documents/Brown/Senior/Semester2/CSCI_2951O/HW1/CSCI2951O-Project1/src/SAT-Solver/pkg/CDCL.go:64 +0x556
+main.main()
+	/Users/suraj/Documents/Brown/Senior/Semester2/CSCI_2951O/HW1/CSCI2951O-Project1/src/SAT-Solver/main.go:36 +0x26d
+exit status 2
