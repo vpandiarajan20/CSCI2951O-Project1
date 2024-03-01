@@ -1,6 +1,8 @@
 package pkg
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ImplicationNode struct {
 	Var     uint

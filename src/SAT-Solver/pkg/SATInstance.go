@@ -238,3 +238,22 @@ func SortedKeysUint(m map[uint]int) []uint {
 	sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
 	return keys
 }
+
+// PrintImplicationGraph prints the implication graph nodes ordered by Var
+func (s *SATInstance) PrintImplicationGraph() {
+	// Collect nodes into a slice
+	var nodes []ImplicationNode
+	for _, node := range s.ImplicationGraph {
+		nodes = append(nodes, node)
+	}
+
+	// Sort nodes by Var
+	sort.Slice(nodes, func(i, j int) bool {
+		return nodes[i].Var < nodes[j].Var
+	})
+
+	// Print the nodes
+	for _, node := range nodes {
+		fmt.Println(node.String())
+	}
+}

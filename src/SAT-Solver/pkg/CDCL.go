@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"log"
@@ -38,9 +37,8 @@ func CDCL(f *SATInstance) (bool, error) {
 			log.Println("Learned Clauses", f.LearnedClauses)
 			log.Println("Conflict Clause", conflictClause)
 			log.Println("Implication Graph")
-			for _, i := range f.ImplicationGraph {
-				fmt.Println(i.String())
-			}
+			f.PrintImplicationGraph()
+
 			level, learnedClause, err := analyzeConflict(f, conflictClause)
 			f.LearnedClauses = append(f.LearnedClauses, learnedClause)
 			if err != nil {
@@ -244,83 +242,83 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 
 	learntClause := make(map[int]bool)
 	maxLevel := 0
-	currVar := 0
+	currLiteral := 0
 
 	fmt.Println("Analyzing this clause", conflictClause, "at level:", f.Level)
 
 	// varsToProcess := conflictClause
-	varsToProcess := list.New()
+	literalsToProcess := Queue{}
 	for val := range conflictClause {
-		varsToProcess.PushBack(val)
+		literalsToProcess.Enqueue(val)
 	}
 	varsProcessed := make(map[int]bool)
 
-	for varsToProcess.Len() > 1 {
-		fmt.Print("varQ:")
-		for e := varsToProcess.Front(); e != nil; e = e.Next() {
-			fmt.Print(e.Value, " ")
+	for len(literalsToProcess) > 1 {
+		// is it okay for a literal and its negation to be in literalsToProcess?
+		// we need to make sure last element has not been visited yet, hence I'm marking things visited as they're put in Q
+		fmt.Println("literalQ:", literalsToProcess)
+		currLiteral, err := literalsToProcess.Dequeue()
+		if err != nil {
+			log.Panicln(err.Error())
 		}
-		fmt.Println()
+		varsProcessed[abs(currLiteral)] = true
 
-		front := varsToProcess.Front()
-		currVar = front.Value.(int)
-
-		_, isVisited := varsProcessed[currVar]
-		if isVisited {
-			varsToProcess.Remove(front)
-			continue
-		}
-
-		varsProcessed[currVar] = true
-		varsToProcess.Remove(front)
-
-		_, isFoundP := conflictClause[currVar]
-		_, isFoundN := conflictClause[-currVar]
-
+		_, isFoundP := conflictClause[currLiteral]
+		_, isFoundN := conflictClause[-currLiteral]
+		fmt.Println("Processing parents of", currLiteral)
 		if isFoundP || isFoundN {
-			for parent := range f.ImplicationGraph[uint(currVar)].Parents {
-				fmt.Println("deciding on parent:", parent, "Level:", f.ImplicationGraph[parent].Level)
-				if f.ImplicationGraph[parent].Level == f.Level {
-					if f.ImplicationGraph[parent].Value == True {
-						varsToProcess.PushBack(int(parent))
-						fmt.Println("Adding to Queue", int(parent))
-					} else if f.ImplicationGraph[parent].Value == False {
-						varsToProcess.PushBack(-int(parent))
-						fmt.Println("Adding to Queue", -int(parent))
+			for parentVar := range f.ImplicationGraph[uint(abs(currLiteral))].Parents {
+				fmt.Println("deciding on parent:", parentVar, "Level:", f.ImplicationGraph[parentVar].Level)
+				if f.ImplicationGraph[parentVar].Level == f.Level {
+					literalToEnqueue := int(parentVar)
+					if f.ImplicationGraph[parentVar].Value == True {
+						// toEnqueue = int(parent)
+					} else if f.ImplicationGraph[parentVar].Value == False {
+						literalToEnqueue = -int(parentVar)
 					} else {
 						log.Panic("Parent is unassigned")
 					}
+					_, alreadyProcessed := varsProcessed[abs(literalToEnqueue)]
+					if alreadyProcessed {
+						continue
+					}
+					fmt.Println("Adding to Queue", literalToEnqueue)
+					literalsToProcess.Enqueue(literalToEnqueue)
+					varsProcessed[abs(literalToEnqueue)] = true
 				} else {
 					// if parent is not at current level, then it is at previous level
-					if f.ImplicationGraph[parent].Value == True {
-						fmt.Println("Adding to Learned Clause", -int(parent))
-						learntClause[-int(parent)] = true
+					if f.ImplicationGraph[parentVar].Value == True {
+						fmt.Println("Adding to Learned Clause", -int(parentVar))
+						learntClause[-int(parentVar)] = true
 						// flip sign
-					} else if f.ImplicationGraph[parent].Value == False {
-						fmt.Println("Adding to Learned Clause", int(parent))
-						learntClause[int(parent)] = true
+					} else if f.ImplicationGraph[parentVar].Value == False {
+						fmt.Println("Adding to Learned Clause", int(parentVar))
+						learntClause[int(parentVar)] = true
 						// flip sign
 					} else {
 						log.Panic("Parent is unassigned")
 					}
-					maxLevel = max(maxLevel, f.ImplicationGraph[parent].Level)
+					maxLevel = max(maxLevel, f.ImplicationGraph[parentVar].Level)
 				}
 				// be careful bc parents are always positive + varsToProcess isn't
 			}
 		}
 	}
 
-	front := varsToProcess.Front()
-	currVar = front.Value.(int)
-	varsToProcess.Remove(front)
+	currLiteral, err := literalsToProcess.Dequeue()
+	if err != nil {
+		log.Panicln(err.Error())
+	}
 
 	// adding last element from queue into learntClause
-	learntClause[-currVar] = true
+	fmt.Println("Adding last elem to Learned Clause", -int(currLiteral))
+	learntClause[-currLiteral] = true
 
 	// TODO: optimization, but could be commented out for now
 	// if len(learntClause) == 1 {
 	// 	return 0, learntClause, nil
 	// }
+	fmt.Println("Learned this clause", learntClause)
 	return maxLevel, learntClause, nil
 }
 
