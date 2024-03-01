@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"sort"
@@ -26,16 +27,20 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	// fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
 
 	// fmt.Println("Pre-UnitProp", fPrime)
-	UnitPropagate(fPrime)
+	f.AssignmentStack.PushEmpty()
+	f.ClauseStack.PushEmpty()
+	UnitPropagate(f)
 	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
-	PureLiteralElim(fPrime)
+	PureLiteralElim(f)
 	// fmt.Println("Post-Literal, Pre-Split", fPrime)
 
-	// checking for empty clause unsat
-	for _, clause := range fPrime.Clauses {
-		if len(clause) == 0 {
-			return nil, false
-		}
+	// checking for forced false clause unsat
+	allClausesSatified := determineAllClauses(f)
+	if allClausesSatified == True {
+		return f, true
+	} else if allClausesSatified == False {
+		backtrack(f)
+		return nil, false
 	}
 
 	// check if all clauses satisfied, if so, return SAT
@@ -43,37 +48,55 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	Var, varVal := SplittingRule(f)
 	// fmt.Println("Split on:", literal)
 
-	if !literalVal {
-		literal *= -1
+	literalToAdd := int(Var)
+
+	if !varVal {
+		literalToAdd *= -1
 	}
 
 	newClause := make(map[int]bool, 0)
-	newClause[literal] = false
-	fPrime.AddClause(newClause)
-	retSAT, isSAT := DPLL(fPrime)
+	newClause[literalToAdd] = false
+	f.AddClause(newClause)
+	retSAT, isSAT := DPLL(f)
 	if isSAT {
 		// fmt.Println("0 clauses, returning true")
 		// fmt.Println("truth assigns", retSAT.Vars)
 		return retSAT, isSAT
 	}
-	// remove last clause
+	lastClause := f.RemoveLastClause()
+
+	_, correctClauseRemoved := lastClause[literalToAdd]
+	if !correctClauseRemoved && len(lastClause) == 1 {
+		fmt.Println("Added clause:", newClause, "does not match removed clause when backtrcking", correctClauseRemoved)
+	}
 
 	// fmt.Println("Split on:", literal, "left failed")
 
 	newClause = make(map[int]bool, 0)
-	newClause[-literal] = false
-	fRightPrime.AddClause(newClause)
-	retSAT, isSAT = DPLL(fRightPrime)
+	newClause[-literalToAdd] = false
+	f.AddClause(newClause)
+	retSAT, isSAT = DPLL(f)
 	if isSAT {
 		// fmt.Println("0 clauses, returning true")
 		// fmt.Println("truth assigns", retSAT.Vars)
 		return retSAT, isSAT
+	}
+
+	_, correctClauseRemoved = lastClause[-literalToAdd]
+	if !correctClauseRemoved && len(lastClause) == 1 {
+		fmt.Println("Added clause:", newClause, "does not match removed clause when backtrcking", correctClauseRemoved)
 	}
 	// fmt.Println("Split on:", literal, "right failed")
 
 	// fmt.Println("Doesn't work, returning False", retSAT)
 
 	// then backtrack
+	backtrack(f)
+
+	return nil, false
+}
+
+func backtrack(f *SATInstance) {
 	currLevelVars, isSuccessful := f.AssignmentStack.Pop()
 	if isSuccessful {
 		for _, Var := range currLevelVars.PropagatedVariables {
@@ -84,26 +107,23 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	if isSuccessful {
 		for _, clauseNum := range currLevelClauses.PropagatedVariables {
 			if Testing {
-				_, isFound := f.UnsatisfiedClauses[int(clauseNum)]
+				_, isFound := f.UnsatisfiedClauses[clauseNum]
 				if isFound {
 					log.Panicln("trying to add a clause to unsatisfiedClauses that is already there")
 				}
 			}
-			f.UnsatisfiedClauses[int(clauseNum)] = true
+			f.AddClauseBacktrack(f.Clauses[clauseNum])
 		}
 	}
-	return nil, false
 }
 
 func UnitPropagate(f *SATInstance) {
 	for {
 		toRemove := 0
 		for _, clause := range f.Clauses {
-			if len(clause) == 1 {
-				//first key of clause map
-				for k := range clause {
-					toRemove = k
-				}
+			isUnit, toRemove := isUnitClause(f, clause)
+			if isUnit {
+				toRemove = toRemove // this is mega braindead idk how to replace
 				break
 			}
 		}
@@ -119,19 +139,27 @@ func UnitPropagate(f *SATInstance) {
 			f.Vars[uint(abs(toRemove))] = True
 		}
 		newClauses := []map[int]bool{}
-		for _, clause := range f.Clauses {
-			// remove clause if it contains the value
+		for i, _ := range f.UnsatisfiedClauses {
+			// remove clause from unsatisfied clauses if it contains the value
+			clause := f.Clauses[i]
 			_, containsVal := clause[toRemove]
 			if containsVal {
 				f.RemoveClauseFromCount(clause)
+				delete(f.UnsatisfiedClauses, i)
+				currLevelClauses, doesExist := f.ClauseStack.Pop()
+				if !doesExist {
+					log.Panicln("nothing on clause stack in unit prop")
+				}
+				currLevelClauses.PropagatedVariables = append(currLevelClauses.PropagatedVariables, uint(i))
+				f.ClauseStack.Push(currLevelClauses)
 				continue // can have both value and negation, but then still remove
 			}
 			// remove value from clause if it contains the negation
-			_, containsNegVal := clause[-toRemove]
-			if containsNegVal {
-				f.RemoveLiteralFromCount(-toRemove)
-				delete(clause, -toRemove)
-			}
+			// _, containsNegVal := clause[-toRemove]
+			// if containsNegVal {
+			// 	f.RemoveLiteralFromCount(-toRemove)
+			// 	delete(clause, -toRemove)
+			// }
 			// if len(clause) == 0 {
 			// 	fmt.Println("Unsat, clause empty")
 			// }
@@ -162,16 +190,22 @@ func PureLiteralElim(f *SATInstance) {
 			} else {
 				f.Vars[uint(abs(literal))] = False
 			}
-			newClauses := []map[int]bool{}
-			for _, clause := range f.Clauses {
+			// newClauses := []map[int]bool{}
+			for i, _ := range f.UnsatisfiedClauses {
+				clause := f.Clauses[i]
 				_, containsVal := clause[literal]
 				if containsVal {
 					f.RemoveClauseFromCount(clause)
+					delete(f.UnsatisfiedClauses, i)
+					currLevelClauses, doesExist := f.ClauseStack.Pop()
+					if !doesExist {
+						log.Panicln("nothing on clause stack in unit prop")
+					}
+					currLevelClauses.PropagatedVariables = append(currLevelClauses.PropagatedVariables, uint(i))
+					f.ClauseStack.Push(currLevelClauses)
 					continue
 				}
-				newClauses = append(newClauses, clause)
 			}
-			f.Clauses = newClauses
 		}
 	}
 }
@@ -264,4 +298,25 @@ func determineClause(f *SATInstance, clause map[int]bool) int {
 	}
 	// if all variables are false, clause is false
 	return False
+}
+
+func isUnitClause(f *SATInstance, clause map[int]bool) (bool, int) {
+	numFalses := 0
+	numUnassigned := 0
+	litUnassigned := 0
+	for literal := range clause {
+		if (literal < 0 && f.Vars[uint(abs(literal))] == True) || (literal > 0 && f.Vars[uint(abs(literal))] == False) {
+			numFalses += 1
+		} else if f.Vars[uint(abs(literal))] == Unassigned {
+			numUnassigned += 1
+			litUnassigned = literal
+			if numUnassigned > 1 {
+				return false, 0
+			}
+		}
+	}
+	if numFalses == len(clause)-1 && numUnassigned == 1 {
+		return true, litUnassigned
+	}
+	return false, 0
 }

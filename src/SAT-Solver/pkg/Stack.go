@@ -8,8 +8,11 @@ type StackVA struct {
 	elements []VariableAssignment
 }
 
-func (s *StackVA) Push(value int, flag bool) {
+func (s *StackVA) PushEmpty() {
 	s.elements = append(s.elements, VariableAssignment{PropagatedVariables: make([]uint, 0)})
+}
+func (s *StackVA) Push(VA VariableAssignment) {
+	s.elements = append(s.elements, VA)
 }
 
 func (s *StackVA) Pop() (VariableAssignment, bool) {

@@ -20,7 +20,7 @@ type SATInstance struct {
 		PosCount int
 		NegCount int
 	})
-	UnsatisfiedClauses map[int]bool
+	UnsatisfiedClauses map[uint]bool
 	AssignmentStack    StackVA
 	ClauseStack        StackVA
 }
@@ -66,9 +66,29 @@ func (s *SATInstance) AddClause(clause map[int]bool) {
 		s.VarCount[uint(abs(k))] = varStruct
 	}
 	s.Clauses = append(s.Clauses, clause)
-	s.UnsatisfiedClauses = append(s.UnsatisfiedClauses, len(s.Clauses)-1)
+	s.UnsatisfiedClauses[uint(s.NumClauses)] = true
 	s.NumClauses += 1
+}
+func (s *SATInstance) AddClauseBacktrack(clause map[int]bool) {
+	for k := range clause {
+		varStruct := s.VarCount[uint(abs(k))]
+		if k < 0 {
+			varStruct.NegCount += 1
+		} else {
+			varStruct := s.VarCount[uint(k)]
+			varStruct.PosCount += 1
+		}
+		s.VarCount[uint(abs(k))] = varStruct
+	}
+	s.UnsatisfiedClauses[uint(s.NumClauses)] = true
+}
 
+func (s *SATInstance) RemoveLastClause() (clause map[int]bool) {
+	s.NumClauses--
+	delete(s.UnsatisfiedClauses, uint(s.NumClauses))
+	deletedClause := s.Clauses[s.NumClauses]
+	s.Clauses = s.Clauses[:s.NumClauses]
+	return deletedClause
 }
 
 func (s *SATInstance) RemoveClauseFromCount(clause map[int]bool) {
