@@ -19,10 +19,10 @@ const (
 var CountFunc = 4
 
 func CDCL(f *SATInstance) (bool, error) {
-	isSuccessful, err := preprocessFormula(f)
-	if !isSuccessful {
-		return false, err
-	}
+	// isSuccessful, err := preprocessFormula(f)
+	// if !isSuccessful {
+	// 	return false, err
+	// }
 	// fmt.Println("post pure literl", f)
 
 	for !allVariablesAssigned(f) {
@@ -248,10 +248,25 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 
 	// varsToProcess := conflictClause
 	literalsToProcess := Queue{}
-	for val := range conflictClause {
-		literalsToProcess.Enqueue(val)
-	}
 	varsProcessed := make(map[int]bool)
+	for literal := range conflictClause {
+		Var := abs(literal)
+		if f.ImplicationGraph[uint(Var)].Level == f.Level {
+			literalsToProcess.Enqueue(literal)
+			varsProcessed[abs(literal)] = true
+		} else {
+			if f.ImplicationGraph[uint(Var)].Value == True {
+				fmt.Println("Adding to Learned Clause", -Var)
+				learntClause[-int(Var)] = true
+				// flip sign
+			} else if f.ImplicationGraph[uint(Var)].Value == False {
+				fmt.Println("Adding to Learned Clause", int(Var))
+				learntClause[int(Var)] = true
+				// flip sign
+			}
+			maxLevel = max(maxLevel, f.ImplicationGraph[uint(Var)].Level)
+		}
+	}
 
 	for len(literalsToProcess) > 1 {
 		// is it okay for a literal and its negation to be in literalsToProcess?
@@ -261,7 +276,6 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 		if err != nil {
 			log.Panicln(err.Error())
 		}
-		varsProcessed[abs(currLiteral)] = true
 
 		_, isFoundP := conflictClause[currLiteral]
 		_, isFoundN := conflictClause[-currLiteral]
@@ -309,16 +323,27 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 	if err != nil {
 		log.Panicln(err.Error())
 	}
-
+	currVar := abs(currLiteral)
+	if f.ImplicationGraph[uint(currVar)].Value == True {
+		fmt.Println("Adding to Learned Clause", -int(currVar))
+		learntClause[-int(currVar)] = true
+		// flip sign
+	} else if f.ImplicationGraph[uint(currVar)].Value == False {
+		fmt.Println("Adding to Learned Clause", int(currVar))
+		learntClause[int(currVar)] = true
+		// flip sign
+	} else {
+		log.Panic("Parent is unassigned")
+	}
 	// adding last element from queue into learntClause
-	fmt.Println("Adding last elem to Learned Clause", -int(currLiteral))
-	learntClause[-currLiteral] = true
+	// fmt.Println("Adding last elem to Learned Clause", -int(currLiteral))
+	// learntClause[-currLiteral] = true
 
 	// TODO: optimization, but could be commented out for now
 	// if len(learntClause) == 1 {
 	// 	return 0, learntClause, nil
 	// }
-	fmt.Println("Learned this clause", learntClause)
+	fmt.Println("Learned this clause", learntClause, "maxLevel:", maxLevel)
 	return maxLevel, learntClause, nil
 }
 
