@@ -21,8 +21,12 @@ type SATInstance struct {
 		Literal1 int // watched literal 1
 		Literal2 int // watched literal 2
 	})
-	LiteralToClauses (map[uint][]int)
+	VarToClauses (map[uint][]int)
+	NumBranches  int
 	// mandatory positive value literals
+	// track which clauses are unresolved, probably a slice of ints?
+	// decision stack
+	// clause resolution stack (track what clauses are resolved at what level)
 }
 
 func NewSATInstance(numVars, numClauses int) *SATInstance {
@@ -35,7 +39,8 @@ func NewSATInstance(numVars, numClauses int) *SATInstance {
 			Literal1 int
 			Literal2 int
 		}, 0),
-		LiteralToClauses: make(map[uint][]int, 0),
+		VarToClauses: make(map[uint][]int, 0),
+		NumBranches:  0,
 	}
 }
 func NewSATInstanceVars(numVars int) *SATInstance {
@@ -48,7 +53,8 @@ func NewSATInstanceVars(numVars int) *SATInstance {
 			Literal1 int
 			Literal2 int
 		}, 0),
-		LiteralToClauses: make(map[uint][]int, 0),
+		VarToClauses: make(map[uint][]int, 0),
+		NumBranches:  0,
 	}
 }
 

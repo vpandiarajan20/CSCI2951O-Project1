@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"container/heap"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -21,6 +22,8 @@ const (
 
 var CountFunc = 3
 var Testing = true
+var EnableRestarts = true
+var RestartDepth = 10
 
 func DPLL(f *SATInstance) (bool, error) {
 
@@ -28,27 +31,46 @@ func DPLL(f *SATInstance) (bool, error) {
 	if !triviallySuccessful || err != nil {
 		return false, err
 	}
+	RestartDepth = len(f.Vars) / 4
 
 	for {
-		literal, literalVal, doneSplitting := SplittingRule(f)
+		Var, literalVal, doneSplitting := SplittingRule(f)
 
 		if doneSplitting || allClausesSatisfied(f) { // can prolly get rid of one of these conditions
 			// out of variables to split on or only split on variables that are in alr satisfied clauses
 			return true, nil
 		}
 		// fmt.Println("Split on:", literal, "set to", literalVal)
+		f.NumBranches++
 
-		f.Vars[uint(abs(literal))] = True
-		if !literalVal {
-			f.Vars[uint(abs(literal))] = False
+		if literalVal {
+			f.Vars[uint(abs(Var))] = True
+		} else {
+			f.Vars[uint(abs(Var))] = False
 		}
-		f.StackAssignments.Push(literal, true, false)
-		isSuccessful, err := unitPropagate(f, literal)
+		f.StackAssignments.Push(Var, true, false)
+		isSuccessful, err := unitPropagate(f, Var)
 		if err != nil {
 			return false, err
 		}
 		for !isSuccessful {
 			// backtracks until branch where has not tried both true and false
+			if EnableRestarts && f.NumBranches > RestartDepth {
+				prevVarAssignment := VariableAssignment{}
+				successfulPop := false
+				for {
+					prevVarAssignment, successfulPop = f.StackAssignments.Pop()
+					if !successfulPop {
+						// if nothing else on stack, then unsat
+						break
+					}
+					f.Vars[uint(abs(prevVarAssignment.Literal))] = Unassigned
+				}
+				f.NumBranches = 0
+				RestartDepth *= 2
+				fmt.Println("Restarted")
+				break
+			}
 			prevVarAssignment := VariableAssignment{}
 			successfulPop := false
 			for {
@@ -58,6 +80,7 @@ func DPLL(f *SATInstance) (bool, error) {
 					return false, nil
 				}
 				if prevVarAssignment.IsBranch {
+					f.NumBranches--
 					// fmt.Println("Unsetting branch: ", prevVarAssignment.Literal, " val:", f.Vars[uint(prevVarAssignment.Literal)])
 				}
 				if prevVarAssignment.TriedBothWays {
@@ -90,12 +113,15 @@ func preprocessFormula(f *SATInstance) (bool, error) {
 	PureLiteralElim(f)
 	SetWatchedLiterals(f)
 
-	// checking for empty clause unsat - should never happen
-	for _, clause := range f.Clauses {
-		if len(clause) == 0 {
-			return false, errors.New("empty clause after pure literal elim - parser messed up")
+	if Testing {
+		// checking for empty clause unsat - should never happen
+		for _, clause := range f.Clauses {
+			if len(clause) == 0 {
+				return false, errors.New("empty clause after pure literal elim - parser messed up")
+			}
 		}
 	}
+
 	// 0 is set to a positive literal, so this should never be the decisive variable in a clause
 
 	isSuccessful, err := unitPropagate(f, 0)
@@ -125,8 +151,8 @@ func SetWatchedLiterals(f *SATInstance) {
 		f.WatchedLiterals[uint(abs(i))] = struct{ Literal1, Literal2 int }{Literal1: literal1, Literal2: literal2}
 
 		// setting struct vals
-		f.LiteralToClauses[uint(abs(literal1))] = append(f.LiteralToClauses[uint(abs(literal1))], i)
-		f.LiteralToClauses[uint(abs(literal2))] = append(f.LiteralToClauses[uint(abs(literal2))], i)
+		f.VarToClauses[uint(abs(literal1))] = append(f.VarToClauses[uint(abs(literal1))], i)
+		f.VarToClauses[uint(abs(literal2))] = append(f.VarToClauses[uint(abs(literal2))], i)
 	}
 
 	f.Vars[0] = False
@@ -135,10 +161,14 @@ func allClausesSatisfied(f *SATInstance) bool {
 	for i := range f.Clauses {
 		literal1 := f.WatchedLiterals[uint(abs(i))].Literal1
 		literal2 := f.WatchedLiterals[uint(abs(i))].Literal2
+		var1 := uint(abs(literal1))
+		var2 := uint(abs(literal2))
+		var1Val := f.Vars[var1]
+		var2Val := f.Vars[var2]
 
-		if (literal1 >= 0 && f.Vars[uint(abs(literal1))] == True) || (f.Vars[uint(abs(literal1))] == False && literal1 < 0) {
+		if (literal1 >= 0 && var1Val == True) || (var1Val == False && literal1 < 0) {
 			continue
-		} else if (literal2 >= 0 && f.Vars[uint(abs(literal2))] == True) || (f.Vars[uint(abs(literal2))] == False && literal2 < 0) {
+		} else if (literal2 >= 0 && var2Val == True) || (var2Val == False && literal2 < 0) {
 			continue
 		} else {
 			return false
@@ -154,7 +184,7 @@ func moveAllWatchedLiterals(f *SATInstance, wlToChange int) (bool, error) {
 	}
 	for {
 		finished := true
-		for _, clauseNum := range f.LiteralToClauses[uint(abs(wlToChange))] {
+		for _, clauseNum := range f.VarToClauses[uint(abs(wlToChange))] {
 			change, err := moveWatchedLiteral(f, wlToChange, clauseNum)
 			// check in moveWatchedLiteral if actually need to move
 
@@ -162,7 +192,7 @@ func moveAllWatchedLiterals(f *SATInstance, wlToChange int) (bool, error) {
 				return false, err
 			}
 			if change == SuccessfulChange {
-				// if change something then f.LiteralToClauses[wlToChange] is stale so break
+				// if change something then f.VarToClauses[wlToChange] is stale so break
 				finished = false
 				break
 			}
@@ -182,14 +212,15 @@ func moveWatchedLiteral(f *SATInstance, wlToChange int, clauseNumber int) (int, 
 	if wlToChange < 0 {
 		return FailedChange, errors.New("wlToChange must be greater than or equal to zero")
 	}
+	watchVarToChange := uint(wlToChange)
 
 	_, isPresent := f.Clauses[clauseNumber][wlToChange]
-	if isPresent && (f.Vars[uint(abs(wlToChange))] == True) {
+	if isPresent && (f.Vars[watchVarToChange] == True) {
 		return NoChange, nil
 	}
 
 	_, isPresent = f.Clauses[clauseNumber][-wlToChange]
-	if isPresent && (f.Vars[uint(abs(wlToChange))] == False) {
+	if isPresent && (f.Vars[watchVarToChange] == False) {
 		return NoChange, nil
 	}
 
@@ -209,26 +240,29 @@ func moveWatchedLiteral(f *SATInstance, wlToChange int, clauseNumber int) (int, 
 			continue
 		}
 
-		if f.Vars[uint(abs(literal))] == Unassigned || (literal >= 0 && f.Vars[uint(abs(literal))] == True) || (f.Vars[uint(abs(literal))] == False && literal < 0) {
+		Var := uint(abs(literal))
+		varVal := f.Vars[Var]
+
+		if varVal == Unassigned || (literal >= 0 && varVal == True) || (varVal == False && literal < 0) {
 			if changeWL1 {
 				// var name is bad
-				newLiteralToClauses, err := removeElement(f.LiteralToClauses[uint(abs(wl.Literal1))], clauseNumber)
-				f.LiteralToClauses[uint(abs(wl.Literal1))] = newLiteralToClauses
+				newVarToClauses, err := removeElement(f.VarToClauses[uint(abs(wl.Literal1))], clauseNumber)
 				if err != nil {
 					return FailedChange, err
 				}
+				f.VarToClauses[uint(abs(wl.Literal1))] = newVarToClauses
 				wl.Literal1 = literal
 			} else {
-				newLiteralToClauses, err := removeElement(f.LiteralToClauses[uint(abs(wl.Literal2))], clauseNumber)
-				f.LiteralToClauses[uint(abs(wl.Literal2))] = newLiteralToClauses
+				newVarToClauses, err := removeElement(f.VarToClauses[uint(abs(wl.Literal2))], clauseNumber)
 				if err != nil {
 					return FailedChange, err
 				}
+				f.VarToClauses[uint(abs(wl.Literal2))] = newVarToClauses
 				wl.Literal2 = literal
 			}
 
 			f.WatchedLiterals[uint(abs(clauseNumber))] = wl
-			f.LiteralToClauses[uint(abs(literal))] = append(f.LiteralToClauses[uint(abs(literal))], clauseNumber)
+			f.VarToClauses[Var] = append(f.VarToClauses[Var], clauseNumber)
 
 			return SuccessfulChange, nil
 		}
@@ -243,7 +277,7 @@ func unitPropagate(f *SATInstance, literalProp int) (bool, error) {
 		return false, errors.New("literal has to Be Non-negative Integer")
 	}
 
-	unitClauses, isFound := f.LiteralToClauses[uint(abs(literalProp))]
+	unitClauses, isFound := f.VarToClauses[uint(abs(literalProp))]
 	if !isFound {
 		return true, nil
 	}
@@ -271,11 +305,16 @@ func unitPropagate(f *SATInstance, literalProp int) (bool, error) {
 
 // should never be called, except after moving a literal
 func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, error) {
+
 	wl := f.WatchedLiterals[uint(abs(clauseNum))]
-	isLiteral1Satisfying := (f.Vars[uint(abs(wl.Literal1))] == True && wl.Literal1 >= 0) || (f.Vars[uint(abs(wl.Literal1))] == False && wl.Literal1 < 0)
-	isLiteral2Satisfying := (f.Vars[uint(abs(wl.Literal2))] == True && wl.Literal2 >= 0) || (f.Vars[uint(abs(wl.Literal2))] == False && wl.Literal2 < 0)
-	isLiteral1Unassigned := f.Vars[uint(abs(wl.Literal1))] == Unassigned
-	isLiteral2Unassigned := f.Vars[uint(abs(wl.Literal2))] == Unassigned
+
+	var1Val := f.Vars[uint(abs(wl.Literal1))]
+	var2Val := f.Vars[uint(abs(wl.Literal2))]
+
+	isLiteral1Satisfying := (var1Val == True && wl.Literal1 >= 0) || (var1Val == False && wl.Literal1 < 0)
+	isLiteral2Satisfying := (var2Val == True && wl.Literal2 >= 0) || (var2Val == False && wl.Literal2 < 0)
+	isLiteral1Unassigned := var1Val == Unassigned
+	isLiteral2Unassigned := var2Val == Unassigned
 
 	successfulProp, err := false, error(nil)
 	if changeW1 {
@@ -283,10 +322,10 @@ func resolveImplication(f *SATInstance, clauseNum int, changeW1 bool) (int, erro
 		// if L2 is assigned poorly => then backtrack
 		// if L2 is assigned well => then we are fine
 
-		if !isLiteral2Satisfying && !isLiteral2Unassigned { //
+		if !isLiteral2Satisfying && !isLiteral2Unassigned {
 			return FailedChange, nil
 		}
-		if isLiteral2Satisfying {
+		if isLiteral2Satisfying { // I don't think it will ever hit this condition, bc of the function that calls it
 			return NoChange, nil
 		}
 		if wl.Literal2 >= 0 {
@@ -376,20 +415,27 @@ func SplittingRule(f *SATInstance) (int, bool, bool) {
 	// 		}
 	// 	}
 	// }
-	bestLiteral := uint(0)
-	mostClauses := 0
+	pq := make(PriorityQueue, 0)
 
-	for literal, clauses := range f.LiteralToClauses {
-
-		if f.Vars[literal] == Unassigned {
-			if len(clauses) > mostClauses {
-				mostClauses = len(clauses)
-				bestLiteral = literal
+	for Var, clauses := range f.VarToClauses {
+		if f.Vars[Var] == Unassigned {
+			if len(pq) < 5 {
+				heap.Push(&pq, &Item{int(Var), -len(clauses), 0})
+			} else {
+				minElem := heap.Pop(&pq).(*Item)
+				if -minElem.priority < len(clauses) {
+					heap.Push(&pq, &Item{int(Var), -len(clauses), 0})
+				} else {
+					heap.Push(&pq, minElem)
+				}
 			}
 		}
 	}
-	if bestLiteral != 0 {
-		return int(bestLiteral), true, false
+	if len(pq) != 0 {
+		for i := 0; i < rand.Intn(pq.Len()-1); i++ {
+			heap.Pop(&pq)
+		}
+		return int(heap.Pop(&pq).(*Item).value), true, false
 	}
 	// for i, clause := range f.Clauses {
 	// 	wl := f.WatchedLiterals[uint(abs(i))]
