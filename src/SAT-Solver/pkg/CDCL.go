@@ -217,20 +217,29 @@ func updateImplicationGraph(f *SATInstance, varToAssign uint, clause map[int]boo
 	f.ImplicationGraph[varToAssign] = impNode
 }
 
+// [] []
 func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]bool, error) {
 	if f.Level == 0 {
 		// if conflict at level 0, then UNSAT
 		return -1, nil, nil
 	}
-	// history := make([]uint, 1)
-	// history[0] = f.BranchingHist[f.Level]
-	// history = append(history, f.PropagateHist[f.Level]...)
+	// for literal := range conflictClause {
+	// 	Var := abs(literal)
+	// 	if f.ImplicationGraph[uint(Var)].Level == f.Level {
+	// 		p = literal
+	// 		break
+	// 	}
+	// }
+	// updateImplicationGraph(f, uint(abs(p)), conflictClause)
 
-	// historyOld := make([]uint, len(history))
-	// copy(historyOld, history)
+	history := make([]uint, 1)
+	history[0] = f.BranchingHist[f.Level]
+	history = append(history, f.PropagateHist[f.Level]...)
 
-	// slices.Reverse(history)
+	historyOld := make([]uint, len(history))
+	copy(historyOld, history)
 
+	// ReverseUIntSlice(history)
 	// ASSERTION: history is reversed
 	// for i, varCurr := range history {
 	// 	if varCurr != historyOld[len(historyOld)-i-1] {
@@ -238,111 +247,74 @@ func analyzeConflict(f *SATInstance, conflictClause map[int]bool) (int, map[int]
 	// 	}
 	// }
 
-	// log.Println("History for level ", f.Level, history)
+	trailStack := NewStackUint(history)
+	pVar, isSuccessful := trailStack.Pop()
+	p := 0
 
+	if !isSuccessful {
+		log.Panic("this shit fucked (free thinker.)")
+	}
+	if f.Vars[pVar] == Unassigned {
+		log.Panic("popped a variable that is unassigned")
+	} else if f.Vars[pVar] == True {
+		p = int(pVar)
+	} else {
+		p = -int(pVar)
+	}
+
+	seen := make(map[uint]bool)
+	currLevelCount := 0
 	learntClause := make(map[int]bool)
 	maxLevel := 0
-	currLiteral := 0
+	for {
+		fmt.Println("p:", p)
+		for parent := range f.ImplicationGraph[uint(pVar)].Parents {
+			if found := seen[parent]; !found {
+				seen[parent] = true
+				if f.ImplicationGraph[parent].Level == f.Level {
+					currLevelCount += 1
+				} else if f.ImplicationGraph[parent].Level < f.Level {
+					learntClause[int(parent)] = true
 
-	fmt.Println("Analyzing this clause", conflictClause, "at level:", f.Level)
-
-	// varsToProcess := conflictClause
-	literalsToProcess := Queue{}
-	varsProcessed := make(map[int]bool)
-	for literal := range conflictClause {
-		Var := abs(literal)
-		if f.ImplicationGraph[uint(Var)].Level == f.Level {
-			literalsToProcess.Enqueue(literal)
-			varsProcessed[abs(literal)] = true
-		} else {
-			if f.ImplicationGraph[uint(Var)].Value == True {
-				fmt.Println("Adding to Learned Clause", -Var)
-				learntClause[-int(Var)] = true
-				// flip sign
-			} else if f.ImplicationGraph[uint(Var)].Value == False {
-				fmt.Println("Adding to Learned Clause", int(Var))
-				learntClause[int(Var)] = true
-				// flip sign
-			}
-			maxLevel = max(maxLevel, f.ImplicationGraph[uint(Var)].Level)
-		}
-	}
-
-	for len(literalsToProcess) > 1 {
-		// is it okay for a literal and its negation to be in literalsToProcess?
-		// we need to make sure last element has not been visited yet, hence I'm marking things visited as they're put in Q
-		fmt.Println("literalQ:", literalsToProcess)
-		currLiteral, err := literalsToProcess.Dequeue()
-		if err != nil {
-			log.Panicln(err.Error())
-		}
-
-		_, isFoundP := conflictClause[currLiteral]
-		_, isFoundN := conflictClause[-currLiteral]
-		fmt.Println("Processing parents of", currLiteral)
-		if isFoundP || isFoundN {
-			for parentVar := range f.ImplicationGraph[uint(abs(currLiteral))].Parents {
-				fmt.Println("deciding on parent:", parentVar, "Level:", f.ImplicationGraph[parentVar].Level)
-				if f.ImplicationGraph[parentVar].Level == f.Level {
-					literalToEnqueue := int(parentVar)
-					if f.ImplicationGraph[parentVar].Value == True {
-						// toEnqueue = int(parent)
-					} else if f.ImplicationGraph[parentVar].Value == False {
-						literalToEnqueue = -int(parentVar)
-					} else {
-						log.Panic("Parent is unassigned")
+					// chooses highest level other than current to jump back to
+					if f.ImplicationGraph[parent].Level > maxLevel && f.ImplicationGraph[parent].Level != f.Level {
+						maxLevel = f.ImplicationGraph[parent].Level
 					}
-					_, alreadyProcessed := varsProcessed[abs(literalToEnqueue)]
-					if alreadyProcessed {
-						continue
-					}
-					fmt.Println("Adding to Queue", literalToEnqueue)
-					literalsToProcess.Enqueue(literalToEnqueue)
-					varsProcessed[abs(literalToEnqueue)] = true
+
 				} else {
-					// if parent is not at current level, then it is at previous level
-					if f.ImplicationGraph[parentVar].Value == True {
-						fmt.Println("Adding to Learned Clause", -int(parentVar))
-						learntClause[-int(parentVar)] = true
-						// flip sign
-					} else if f.ImplicationGraph[parentVar].Value == False {
-						fmt.Println("Adding to Learned Clause", int(parentVar))
-						learntClause[int(parentVar)] = true
-						// flip sign
-					} else {
-						log.Panic("Parent is unassigned")
-					}
-					maxLevel = max(maxLevel, f.ImplicationGraph[parentVar].Level)
+					log.Panic("Parent is at a level higher than current level")
 				}
-				// be careful bc parents are always positive + varsToProcess isn't
 			}
 		}
-	}
 
-	currLiteral, err := literalsToProcess.Dequeue()
-	if err != nil {
-		log.Panicln(err.Error())
-	}
-	currVar := abs(currLiteral)
-	if f.ImplicationGraph[uint(currVar)].Value == True {
-		fmt.Println("Adding to Learned Clause", -int(currVar))
-		learntClause[-int(currVar)] = true
-		// flip sign
-	} else if f.ImplicationGraph[uint(currVar)].Value == False {
-		fmt.Println("Adding to Learned Clause", int(currVar))
-		learntClause[int(currVar)] = true
-		// flip sign
-	} else {
-		log.Panic("Parent is unassigned")
-	}
-	// adding last element from queue into learntClause
-	// fmt.Println("Adding last elem to Learned Clause", -int(currLiteral))
-	// learntClause[-currLiteral] = true
+		for {
+			fmt.Println("trailstack rn", trailStack.elements)
+			fmt.Println("seen rn", seen)
+			pVar, isSuccessful := trailStack.Pop()
+			if !isSuccessful {
+				log.Panic("trailStack is empty")
+			}
+			if f.Vars[pVar] == Unassigned {
+				log.Panic("popped a variable that is unassigned")
+			} else if f.Vars[pVar] == True {
+				p = int(pVar)
+			} else {
+				p = -int(pVar)
+			}
+			if found := seen[uint(abs(p))]; found {
+				break
+			}
+		}
+		currLevelCount -= 1
+		fmt.Println("currLevelCount rn", currLevelCount)
 
-	// TODO: optimization, but could be commented out for now
-	// if len(learntClause) == 1 {
-	// 	return 0, learntClause, nil
-	// }
+		if currLevelCount == 0 {
+			break
+		}
+	}
+	learntClause[-int(p)] = true
+	fmt.Println("p at the end", p)
+
 	fmt.Println("Learned this clause", learntClause, "maxLevel:", maxLevel)
 	return maxLevel, learntClause, nil
 }
@@ -549,3 +521,14 @@ func max(a, b int) int {
 // 	// if all clauses are true, formula is true
 // 	return True
 // }
+
+func ReverseUIntSlice(slice []uint) {
+	// Get the length of the slice
+	n := len(slice)
+
+	// Swap elements from both ends until the whole slice is reversed
+	for i := 0; i < n/2; i++ {
+		slice[i], slice[n-1-i] = slice[n-1-i], slice[i]
+	}
+	// sort.Reverse(sort.IntSlice(slice))
+}
