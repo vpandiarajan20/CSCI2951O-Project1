@@ -14,6 +14,7 @@ const (
 )
 
 var CountFunc = 3
+var Testing = true
 
 func DPLL(f *SATInstance) (*SATInstance, bool) {
 	if len(f.Clauses) == 0 {
@@ -22,12 +23,12 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 		return f, true
 	}
 
-	fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
+	// fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
 
 	// fmt.Println("Pre-UnitProp", fPrime)
-	UnitPropagate(fPrime) 
+	UnitPropagate(fPrime)
 	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
-	PureLiteralElim(fPrime) 
+	PureLiteralElim(fPrime)
 	// fmt.Println("Post-Literal, Pre-Split", fPrime)
 
 	// checking for empty clause unsat
@@ -37,16 +38,10 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 		}
 	}
 
-	if len(fPrime.Clauses) == 0 {
-		// fmt.Println("0 clauses, returning true", fPrime)
-		// fmt.Println("truth assigns", f.Vars)
-		return fPrime, true
-	}
+	// check if all clauses satisfied, if so, return SAT
 
-	literal, literalVal := SplittingRule(fPrime)
+	Var, varVal := SplittingRule(f)
 	// fmt.Println("Split on:", literal)
-
-	fRightPrime := DeepCopySATInstance(*fPrime)
 
 	if !literalVal {
 		literal *= -1
@@ -61,6 +56,8 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 		// fmt.Println("truth assigns", retSAT.Vars)
 		return retSAT, isSAT
 	}
+	// remove last clause
+
 	// fmt.Println("Split on:", literal, "left failed")
 
 	newClause = make(map[int]bool, 0)
@@ -75,6 +72,26 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	// fmt.Println("Split on:", literal, "right failed")
 
 	// fmt.Println("Doesn't work, returning False", retSAT)
+
+	// then backtrack
+	currLevelVars, isSuccessful := f.AssignmentStack.Pop()
+	if isSuccessful {
+		for _, Var := range currLevelVars.PropagatedVariables {
+			f.Vars[Var] = Unassigned
+		}
+	}
+	currLevelClauses, isSuccessful := f.ClauseStack.Pop()
+	if isSuccessful {
+		for _, clauseNum := range currLevelClauses.PropagatedVariables {
+			if Testing {
+				_, isFound := f.UnsatisfiedClauses[int(clauseNum)]
+				if isFound {
+					log.Panicln("trying to add a clause to unsatisfiedClauses that is already there")
+				}
+			}
+			f.UnsatisfiedClauses[int(clauseNum)] = true
+		}
+	}
 	return nil, false
 }
 
@@ -83,7 +100,7 @@ func UnitPropagate(f *SATInstance) {
 		toRemove := 0
 		for _, clause := range f.Clauses {
 			if len(clause) == 1 {
-				//first key of clause map 
+				//first key of clause map
 				for k := range clause {
 					toRemove = k
 				}
@@ -96,17 +113,17 @@ func UnitPropagate(f *SATInstance) {
 			break
 			// break if no unit clause
 		} else if toRemove < 0 {
-			f.Vars[toRemove*-1] = false
+			f.Vars[uint(abs(toRemove))] = False
 			// all variables stored positive in map
 		} else {
-			f.Vars[toRemove] = true
+			f.Vars[uint(abs(toRemove))] = True
 		}
 		newClauses := []map[int]bool{}
 		for _, clause := range f.Clauses {
 			// remove clause if it contains the value
 			_, containsVal := clause[toRemove]
 			if containsVal {
-				f.RemoveClauseFromCount(clause) 
+				f.RemoveClauseFromCount(clause)
 				continue // can have both value and negation, but then still remove
 			}
 			// remove value from clause if it contains the negation
@@ -130,20 +147,20 @@ func PureLiteralElim(f *SATInstance) {
 		pureLiterals := make([]int, 0)
 		for k, v := range f.VarCount {
 			if v.NegCount == 0 && v.PosCount > 0 {
-				pureLiterals = append(pureLiterals, k)
+				pureLiterals = append(pureLiterals, int(k))
 			} else if v.PosCount == 0 && v.NegCount > 0 {
-				pureLiterals = append(pureLiterals, -k)
+				pureLiterals = append(pureLiterals, -int(k))
 			}
 		}
 		if len(pureLiterals) == 0 {
 			return
 		}
 		for _, literal := range pureLiterals {
-			 // actually filling out var
+			// actually filling out var
 			if literal > 0 {
-				f.Vars[literal] = true
+				f.Vars[uint(abs(literal))] = True
 			} else {
-				f.Vars[-literal] = false
+				f.Vars[uint(abs(literal))] = False
 			}
 			newClauses := []map[int]bool{}
 			for _, clause := range f.Clauses {
@@ -159,9 +176,9 @@ func PureLiteralElim(f *SATInstance) {
 	}
 }
 
-func SplittingRule(f *SATInstance) (int, bool) {
+func SplittingRule(f *SATInstance) (uint, bool) {
 
-	keys := make([]int, len(f.VarCount))
+	keys := make([]uint, len(f.VarCount))
 	i := 0
 	for k := range f.VarCount {
 		keys[i] = k
@@ -184,7 +201,7 @@ func SplittingRule(f *SATInstance) (int, bool) {
 	default:
 		for _, clause := range f.Clauses {
 			for variable := range clause {
-				return variable, true
+				return uint(abs(variable)), true
 			}
 		}
 	}
@@ -212,4 +229,39 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func determineAllClauses(f *SATInstance) int {
+	for _, clause := range f.Clauses {
+		if determineClause(f, clause) == False {
+			return False
+			// if any clause is false, formula is false
+		}
+	}
+	for _, clause := range f.Clauses {
+		if determineClause(f, clause) == Unassigned {
+			return Unassigned
+			// returns Unassigned if there is an unassigned variable and not alr False
+		}
+	}
+	// if all clauses are true, formula is true
+	return True
+}
+
+func determineClause(f *SATInstance, clause map[int]bool) int {
+
+	for variable := range clause { // iterate through all variables in clause
+		if (variable > 0 && f.Vars[uint(abs(variable))] == True) || (variable < 0 && f.Vars[uint(abs(variable))] == False) {
+			// if any variable is true and shows up as pos || any var is false and shows up as neg, clause is true
+			return True
+		}
+	}
+	for variable := range clause {
+		if f.Vars[uint(abs(variable))] == Unassigned {
+			// returns Unassigned if there is an unassigned variable
+			return Unassigned
+		}
+	}
+	// if all variables are false, clause is false
+	return False
 }
