@@ -20,6 +20,7 @@ const (
 )
 
 var CountFunc = 3
+var Testing = true
 
 func DPLL(f *SATInstance) (bool, error) {
 
@@ -258,6 +259,9 @@ func unitPropagate(f *SATInstance, literalProp int) (bool, error) {
 			continue
 		}
 
+		// if Testing {
+		// 	isUnit, unitLit := isUnitClause(f, f.Clauses[clauseNum])
+		// }
 		moveSuccesful, err := moveAllWatchedLiterals(f, literalProp)
 		return moveSuccesful, err
 		// moveSuccessful is if fails => then backtrack/unsat if init
@@ -411,6 +415,24 @@ func SplittingRule(f *SATInstance) (int, bool, bool) {
 // 	}
 // 	return b
 // }
+
+func isUnitClause(f *SATInstance, clause map[int]bool) (bool, int) {
+	numFalses := 0
+	numUnassigned := 0
+	litUnassigned := 0
+	for literal := range clause {
+		if (literal < 0 && f.Vars[uint(abs(literal))] == True) || (literal > 0 && f.Vars[uint(abs(literal))] == False) {
+			numFalses += 1
+		} else if f.Vars[uint(abs(literal))] == Unassigned {
+			numUnassigned += 1
+			litUnassigned = literal
+		}
+	}
+	if numFalses == len(clause)-1 && numUnassigned == 1 {
+		return true, litUnassigned
+	}
+	return false, 0
+}
 
 // removeElement removes the first occurrence of elem from slice and returns the modified slice.
 func removeElement(slice []int, elem int) ([]int, error) {
