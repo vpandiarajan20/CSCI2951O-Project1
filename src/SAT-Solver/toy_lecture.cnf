@@ -1,0 +1,10 @@
+c DIMACS CNF representation of the boolean formula
+c F = (a V ¬b V d) ∧ (a V ¬b V e) ∧ (¬b V ¬d V ¬e) ∧ (a V b V c V d) ∧ (a V b V c V ¬d) ∧ (a V b V ¬c V e) ∧ (a V b V ¬c V ¬e)
+p cnf 5 7
+1 -2 4 0
+1 -2 5 0
+-2 -4 -5 0
+1 2 3 4 0
+1 2 3 -4 0
+1 2 -3 5 0
+1 2 -3 -5 0

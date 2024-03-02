@@ -21,6 +21,8 @@ func main() {
 		pkg.CountFunc, _ = strconv.Atoi(os.Args[2])
 	}
 
+	outputFile := "output_assignments.txt"
+
 	instance, err := pkg.ParseCNFFile(inputFile)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -32,9 +34,15 @@ func main() {
 	newInstance, isSAT := pkg.DPLL(instance)
 	duration := time.Since(start)
 
+	file, err := os.OpenFile(outputFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+
 	if isSAT {
 		// TODO: write to a file
-		fmt.Println("final output", newInstance)
+		fmt.Fprintf(file, "final truth values %v\n", newInstance.Vars)
 		// fmt.Println("final truth values", newInstance.Vars)
 		fmt.Printf("{\"Instance\": \"%s\", \"Time\": %.2f, \"Result\": \"SAT\", \"Solution\": \"%v\"}\n", filename, duration.Seconds(), mapToString(newInstance.Vars))
 	} else {

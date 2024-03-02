@@ -13,7 +13,7 @@ const (
 	RDLIS
 )
 
-var CountFunc = 3
+var CountFunc = 2
 
 func DPLL(f *SATInstance) (*SATInstance, bool) {
 	if len(f.Clauses) == 0 {
@@ -25,9 +25,9 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
 
 	// fmt.Println("Pre-UnitProp", fPrime)
-	UnitPropagate(fPrime) 
+	UnitPropagate(fPrime)
 	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
-	PureLiteralElim(fPrime) 
+	PureLiteralElim(fPrime)
 	// fmt.Println("Post-Literal, Pre-Split", fPrime)
 
 	// checking for empty clause unsat
@@ -83,7 +83,7 @@ func UnitPropagate(f *SATInstance) {
 		toRemove := 0
 		for _, clause := range f.Clauses {
 			if len(clause) == 1 {
-				//first key of clause map 
+				//first key of clause map
 				for k := range clause {
 					toRemove = k
 				}
@@ -106,7 +106,7 @@ func UnitPropagate(f *SATInstance) {
 			// remove clause if it contains the value
 			_, containsVal := clause[toRemove]
 			if containsVal {
-				f.RemoveClauseFromCount(clause) 
+				f.RemoveClauseFromCount(clause)
 				continue // can have both value and negation, but then still remove
 			}
 			// remove value from clause if it contains the negation
@@ -139,7 +139,7 @@ func PureLiteralElim(f *SATInstance) {
 			return
 		}
 		for _, literal := range pureLiterals {
-			 // actually filling out var
+			// actually filling out var
 			if literal > 0 {
 				f.Vars[literal] = true
 			} else {
