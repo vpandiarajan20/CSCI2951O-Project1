@@ -35,6 +35,9 @@ func NewSATInstance(numVars, numClauses int) *SATInstance {
 			PosCount int
 			NegCount int
 		}, 0),
+		UnsatisfiedClauses: make(map[uint]bool),
+		AssignmentStack:    StackVA{},
+		ClauseStack:        StackVA{},
 	}
 }
 func NewSATInstanceVars(numVars int) *SATInstance {
@@ -47,6 +50,9 @@ func NewSATInstanceVars(numVars int) *SATInstance {
 			PosCount int
 			NegCount int
 		}, 0),
+		UnsatisfiedClauses: make(map[uint]bool),
+		AssignmentStack:    StackVA{},
+		ClauseStack:        StackVA{},
 	}
 }
 
@@ -60,7 +66,6 @@ func (s *SATInstance) AddClause(clause map[int]bool) {
 		if k < 0 {
 			varStruct.NegCount += 1
 		} else {
-			varStruct := s.VarCount[uint(k)]
 			varStruct.PosCount += 1
 		}
 		s.VarCount[uint(abs(k))] = varStruct
@@ -75,15 +80,15 @@ func (s *SATInstance) AddClauseBacktrack(clause map[int]bool) {
 		if k < 0 {
 			varStruct.NegCount += 1
 		} else {
-			varStruct := s.VarCount[uint(k)]
 			varStruct.PosCount += 1
 		}
 		s.VarCount[uint(abs(k))] = varStruct
 	}
-	s.UnsatisfiedClauses[uint(s.NumClauses)] = true
+	// s.UnsatisfiedClauses[uint(s.NumClauses)] = true
 }
 
 func (s *SATInstance) RemoveLastClause() (clause map[int]bool) {
+	s.RemoveClauseFromCount(clause)
 	s.NumClauses--
 	delete(s.UnsatisfiedClauses, uint(s.NumClauses))
 	deletedClause := s.Clauses[s.NumClauses]
@@ -123,14 +128,18 @@ func (s *SATInstance) String() string {
 	*buf = append(*buf, fmt.Sprintf("Number of clauses: %d\n", s.NumClauses))
 	*buf = append(*buf, fmt.Sprintf("Variables: %v\n", SortedKeysUint(s.Vars)))
 
-	for c, clause := range s.Clauses {
-		*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, SortedKeysInt(clause)))
-	}
+	// for c, clause := range s.Clauses {
+	// 	*buf = append(*buf, fmt.Sprintf("Clause %d: %v\n", c, SortedKeysInt(clause)))
+	// }
 
 	*buf = append(*buf, "VarCount:\n")
 	for varID, counts := range s.VarCount {
 		*buf = append(*buf, fmt.Sprintf("  Variable %d: PosCount=%d, NegCount=%d\n", varID, counts.PosCount, counts.NegCount))
 	}
+
+	*buf = append(*buf, fmt.Sprintf("unsatisfied clauses %v \n", s.UnsatisfiedClauses))
+	*buf = append(*buf, fmt.Sprintf("assigned elements %v \n", s.AssignmentStack.elements))
+	*buf = append(*buf, fmt.Sprintf("satisfied clauses %v \n", s.ClauseStack.elements))
 
 	return fmt.Sprint(*buf)
 }

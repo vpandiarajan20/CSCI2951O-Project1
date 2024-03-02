@@ -14,7 +14,7 @@ const (
 	RDLIS
 )
 
-var CountFunc = 3
+var CountFunc = 1
 var Testing = true
 
 func DPLL(f *SATInstance) (*SATInstance, bool) {
@@ -26,19 +26,25 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 
 	// fPrime := DeepCopySATInstance(*f) // couldn't be asked to backtrack
 
-	// fmt.Println("Pre-UnitProp", fPrime)
+	// fmt.Println("Pre-UnitProp", f)
+	// fmt.Println("Pre-UnitProp")
 	f.AssignmentStack.PushEmpty()
 	f.ClauseStack.PushEmpty()
 	UnitPropagate(f)
-	// fmt.Println("Post-UnitProp, Pre-Literal", fPrime)
+	// fmt.Println("Post-UnitProp, Pre-Literal")
+	// fmt.Println("Post-UnitProp, Pre-Literal", f)
 	PureLiteralElim(f)
-	// fmt.Println("Post-Literal, Pre-Split", fPrime)
+	// fmt.Println("Post-Literal, Pre-Split")
+	// fmt.Println("Post-Literal, Pre-Split", f)
+	// fmt.Println("Post-Literal, Pre-Split, Satisfied Clauses", f.ClauseStack.elements)
+	// fmt.Println("Post-Literal, Pre-Split, Decisions", f.AssignmentStack.elements)
 
 	// checking for forced false clause unsat
 	allClausesSatified := determineAllClauses(f)
 	if allClausesSatified == True {
 		return f, true
 	} else if allClausesSatified == False {
+		fmt.Println("Backtracking because conflict cause")
 		backtrack(f)
 		return nil, false
 	}
@@ -46,7 +52,7 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 	// check if all clauses satisfied, if so, return SAT
 
 	Var, varVal := SplittingRule(f)
-	// fmt.Println("Split on:", literal)
+	fmt.Println("Split on:", Var)
 
 	literalToAdd := int(Var)
 
@@ -64,13 +70,18 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 		return retSAT, isSAT
 	}
 	lastClause := f.RemoveLastClause()
+	lastLevelAssigned, _ := f.AssignmentStack.Peek()
+	fmt.Println("removed clause", lastClause, "split on ", literalToAdd, "assignment stack", lastLevelAssigned.PropagatedVariables)
+	// for k := range lastClause {
+	// 	f.Vars[uint(abs(k))] = Unassigned
+	// }
 
 	_, correctClauseRemoved := lastClause[literalToAdd]
 	if !correctClauseRemoved && len(lastClause) == 1 {
 		fmt.Println("Added clause:", newClause, "does not match removed clause when backtrcking", correctClauseRemoved)
 	}
 
-	// fmt.Println("Split on:", literal, "left failed")
+	fmt.Println("Split on:", Var, "left failed")
 
 	newClause = make(map[int]bool, 0)
 	newClause[-literalToAdd] = false
@@ -81,16 +92,21 @@ func DPLL(f *SATInstance) (*SATInstance, bool) {
 		// fmt.Println("truth assigns", retSAT.Vars)
 		return retSAT, isSAT
 	}
+	// for k := range lastClause {
+	// 	f.Vars[uint(abs(k))] = Unassigned
+	// }
 
 	_, correctClauseRemoved = lastClause[-literalToAdd]
 	if !correctClauseRemoved && len(lastClause) == 1 {
 		fmt.Println("Added clause:", newClause, "does not match removed clause when backtrcking", correctClauseRemoved)
 	}
-	// fmt.Println("Split on:", literal, "right failed")
+	fmt.Println("Split on:", Var, "right failed")
 
-	// fmt.Println("Doesn't work, returning False", retSAT)
+	fmt.Println("Clauses", f.Clauses)
+	fmt.Println("Unsatisfied Clauses", f.UnsatisfiedClauses)
 
 	// then backtrack
+	fmt.Println("Backtracking b/c both branches failed")
 	backtrack(f)
 
 	return nil, false
@@ -120,15 +136,28 @@ func backtrack(f *SATInstance) {
 func UnitPropagate(f *SATInstance) {
 	for {
 		toRemove := 0
-		for _, clause := range f.Clauses {
-			isUnit, toRemove := isUnitClause(f, clause)
+		for clauseNum := range f.UnsatisfiedClauses {
+			clause := f.Clauses[clauseNum]
+			if Testing {
+				clauseState := determineClause(f, clause)
+				if clauseState == True || clauseState == False {
+					lastAssignments, _ := f.AssignmentStack.Peek()
+					fmt.Println("Decision Stack", lastAssignments.PropagatedVariables)
+					for literal := range clause {
+						fmt.Println("literal:", literal, "val", f.Vars[uint(abs(literal))])
+					}
+					// TODO: somehow all variables in here are assigned even though one is not in the decsion stack
+					log.Panic("satisfied/unsatisfied clause in unsatisfied clauses, state:", clauseState, ", clause:", clause)
+				}
+			}
+			isUnit, unit := isUnitClause(f, clause)
 			if isUnit {
-				toRemove = toRemove // this is mega braindead idk how to replace
+				toRemove = unit // this is mega braindead idk how to replac
 				break
 			}
 		}
 		// fmt.Println("unit propping", f.PrintClauses())
-		// fmt.Println("removing", toRemove)
+		fmt.Println("Unit Propping:", toRemove)
 		if toRemove == 0 {
 			break
 			// break if no unit clause
@@ -138,8 +167,7 @@ func UnitPropagate(f *SATInstance) {
 		} else {
 			f.Vars[uint(abs(toRemove))] = True
 		}
-		newClauses := []map[int]bool{}
-		for i, _ := range f.UnsatisfiedClauses {
+		for i := range f.UnsatisfiedClauses {
 			// remove clause from unsatisfied clauses if it contains the value
 			clause := f.Clauses[i]
 			_, containsVal := clause[toRemove]
@@ -154,18 +182,14 @@ func UnitPropagate(f *SATInstance) {
 				f.ClauseStack.Push(currLevelClauses)
 				continue // can have both value and negation, but then still remove
 			}
-			// remove value from clause if it contains the negation
-			// _, containsNegVal := clause[-toRemove]
-			// if containsNegVal {
-			// 	f.RemoveLiteralFromCount(-toRemove)
-			// 	delete(clause, -toRemove)
-			// }
-			// if len(clause) == 0 {
-			// 	fmt.Println("Unsat, clause empty")
-			// }
-			newClauses = append(newClauses, clause)
 		}
-		f.Clauses = newClauses
+		currLevelAssignments, doesExist := f.AssignmentStack.Pop()
+		if !doesExist {
+			log.Panicln("nothing on assignment stack in unit prop")
+		}
+		currLevelAssignments.PropagatedVariables = append(currLevelAssignments.PropagatedVariables, uint(abs(toRemove)))
+		f.AssignmentStack.Push(currLevelAssignments)
+		// f.Clauses = newClauses
 	}
 }
 
@@ -174,6 +198,9 @@ func PureLiteralElim(f *SATInstance) {
 	for {
 		pureLiterals := make([]int, 0)
 		for k, v := range f.VarCount {
+			if f.Vars[k] != Unassigned {
+				continue
+			}
 			if v.NegCount == 0 && v.PosCount > 0 {
 				pureLiterals = append(pureLiterals, int(k))
 			} else if v.PosCount == 0 && v.NegCount > 0 {
@@ -184,28 +211,40 @@ func PureLiteralElim(f *SATInstance) {
 			return
 		}
 		for _, literal := range pureLiterals {
+			fmt.Println(literal, "is a pure literal")
 			// actually filling out var
 			if literal > 0 {
 				f.Vars[uint(abs(literal))] = True
 			} else {
 				f.Vars[uint(abs(literal))] = False
 			}
-			// newClauses := []map[int]bool{}
-			for i, _ := range f.UnsatisfiedClauses {
+			for i := range f.UnsatisfiedClauses {
 				clause := f.Clauses[i]
 				_, containsVal := clause[literal]
 				if containsVal {
+					literalCount := f.VarCount[uint(abs(literal))].NegCount + f.VarCount[uint(abs(literal))].PosCount
 					f.RemoveClauseFromCount(clause)
+					if f.VarCount[uint(abs(literal))].NegCount+f.VarCount[uint(abs(literal))].PosCount != literalCount-1 {
+						fmt.Println("literal", literal, "clause:", clause)
+						fmt.Println("VarCountNow", f.VarCount[uint(abs(literal))], "clause:", clause)
+						log.Panicln("varcounts are messed up?")
+					}
 					delete(f.UnsatisfiedClauses, i)
 					currLevelClauses, doesExist := f.ClauseStack.Pop()
 					if !doesExist {
-						log.Panicln("nothing on clause stack in unit prop")
+						log.Panicln("nothing on clause stack in pure literal elim")
 					}
 					currLevelClauses.PropagatedVariables = append(currLevelClauses.PropagatedVariables, uint(i))
 					f.ClauseStack.Push(currLevelClauses)
 					continue
 				}
 			}
+			currLevelAssignments, doesExist := f.AssignmentStack.Pop()
+			if !doesExist {
+				log.Panicln("nothing on assignment stack in pure literal elim")
+			}
+			currLevelAssignments.PropagatedVariables = append(currLevelAssignments.PropagatedVariables, uint(abs(literal)))
+			f.AssignmentStack.Push(currLevelAssignments)
 		}
 	}
 }
@@ -215,8 +254,10 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 	keys := make([]uint, len(f.VarCount))
 	i := 0
 	for k := range f.VarCount {
-		keys[i] = k
-		i++
+		if f.Vars[k] == Unassigned {
+			keys[i] = k
+			i++
+		}
 	}
 	switch CountFunc {
 	case DLCS, RDLCS:
@@ -249,6 +290,9 @@ func SplittingRule(f *SATInstance) (uint, bool) {
 			if iCounts.NegCount+iCounts.PosCount > 0 {
 				validLiterals += 1
 			}
+		}
+		if validLiterals == 0 {
+			return 0, false
 		}
 		keyToReturn := keys[rand.Intn(validLiterals)]
 		return keyToReturn, f.VarCount[keyToReturn].PosCount > f.VarCount[keyToReturn].NegCount

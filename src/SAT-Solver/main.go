@@ -42,11 +42,28 @@ func main() {
 	}
 }
 
-func mapToString(vars map[int]bool) string {
-	keys := pkg.SortedKeys(vars)
+//	func mapToString(vars map[int]bool) string {
+//		keys := pkg.SortedKeys(vars)
+//		var result string
+//		for _, key := range keys {
+//			result += fmt.Sprintf("%d %v ", key, vars[key])
+//		}
+//		return result[:len(result)-1]
+//	}
+func mapToString(vars map[uint]int) string {
+	keys := pkg.SortedKeysUint(vars)
 	var result string
 	for _, key := range keys {
-		result += fmt.Sprintf("%d %v ", key, vars[key])
+		switch vars[uint(key)] {
+		case pkg.True:
+			result += fmt.Sprintf("%d true ", key)
+		case pkg.False:
+			result += fmt.Sprintf("%d false ", key)
+		case pkg.Unassigned:
+			// TODO: maybe throw an error
+			fmt.Printf("%d is left unassigned \n", key)
+			result += fmt.Sprintf("%d false ", key)
+		}
 	}
 	return result[:len(result)-1]
 }
